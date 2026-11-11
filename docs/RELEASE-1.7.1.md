@@ -18,4 +18,11 @@
 - 除上述默认值与迁移外，开关划分、拦截规则与作用域逻辑未改动
 - 结构自查新增三项（默认值表与引用双向核对、调用点不许写字面默认值、I18n 同一个中文键只能登记一次），CI 改用 `--strict`
 
+## 致谢
+
+- **[@KANGKKKKKKK](https://github.com/KANGKKKKKKK)**
+  - PR [#20](https://github.com/vivibibi30/hyperpguard/pull/20)：默认值收敛到 `Config.DEFAULTS`、1.6.12 三个旧键的迁移、`Hooks.allByName` 兜住反射异常、自查脚本新增三项检查
+  - PR [#21](https://github.com/vivibibi30/hyperpguard/pull/21)：CI 增加 `pull_request` 触发，改动分支在合并前也能拿到构建结果
+  - Issue [#22](https://github.com/vivibibi30/hyperpguard/issues/22)：定位到小米输入法击键统计经 `OneTrack#track` 发出，据此更正了文档里「未覆盖」的说法
+
 全部提交：https://github.com/vivibibi30/hyperpguard/compare/v1.7.0...v1.7.1
