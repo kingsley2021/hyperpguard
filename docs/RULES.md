@@ -12,7 +12,7 @@
 | aicr | OneTrack 方法层 + 同上域名 | AI 内容识别组件内嵌 OneTrack；本地识别与模型推理不经过埋点 |
 | 搜狗输入法 | `kpi2.android.shouji.sogou.com` `instantpb.android.shouji.sogou.com` | 搜狗自有统计链路，两个域名都来自 dex 常量；与 OneTrack 无关，只影响埋点 |
 | 搜狗输入法 | `com.sohu.inputmethod.clipboard.ClipboardLogHelper` 的 static void 方法 | 剪贴板内容与长度的记录／回传入口，类名是保留下来的语义名；输入、候选与词库不经过该类 |
-| 小米输入法 | OneTrack 方法层 + 同上域名 | 内嵌 OneTrack；击键统计（`duration_s` / `key_cnt` / `action_list`）经 `OneTrack#track` 上报，已由 OneTrack 方法层覆盖 |
+| 小米输入法 | OneTrack 方法层 + 同上域名 | 内嵌 OneTrack；击键统计（`duration_s` / `key_cnt` / `action_list`）据第三方静态分析经 `OneTrack#track` 发出，由 OneTrack 方法层覆盖（本仓库未独立复现该调用链） |
 | 百度输入法 | `com.baidu.stats.*`、`com.baidu.speech.utils.analysis.*` 的 void 方法 | 百度统计 SDK 的记录与上传入口，以及语音识别的 ASR 采集上传；只停埋点，语音输入本身不受影响 |
 | 讯飞输入法 | `com.iflytek.statssdk.*` 的 void 方法 | 讯飞统计 SDK 的记录与上传入口 |
 | SystemHelper | `dm.wo.com.cn` | 唯一已知上报地址 `http://dm.wo.com.cn:18080/register`（明文 HTTP、应用层加密封装），硬编码在 `c.d.a.b.d` 常量中；组件为运营商设备管理 / 网络优化用途，非恶意软件 |

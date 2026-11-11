@@ -85,7 +85,7 @@
 | AI 内容识别 | `com.xiaomi.aicr` | OneTrack 埋点；本地识别与推理不受影响 |
 | 广告组件 | `com.miui.systemAdSolution` | 广告使用画像（今日是否打开 / 最后使用时间）、OneTrack 埋点；域名层默认不拦。勾选作用域后要点一次卡片上的「重启」，旧进程不会自动补注入 |
 | 搜狗输入法 | `com.sohu.inputmethod.sogou.xiaomi` | 统计上报（`kpi2` / `instantpb`）、`ClipboardLogHelper` 的剪贴板内容记录 |
-| 小米输入法 | `com.xiaomi.type` | OneTrack 埋点；击键统计经 `OneTrack#track` 上报，已由 OneTrack 方法层覆盖 |
+| 小米输入法 | `com.xiaomi.type` | OneTrack 埋点；击键统计据第三方静态分析经 `OneTrack#track` 发出，由 OneTrack 方法层覆盖 |
 | 百度输入法 | `com.baidu.input_mi` | `com.baidu.stats` 统计 SDK、语音识别 ASR 采集上传 |
 | 讯飞输入法 | `com.iflytek.inputmethod.miui` | `com.iflytek.statssdk` 统计 SDK |
 | 小米服务框架 | `com.xiaomi.xmsf` | 广告接口、OneTrack 统计上报（`tracking.miui.com/track/`） |
@@ -193,6 +193,12 @@ build.sh              一键构建
 - 本项目不做付费分发，也不提供「赞助解锁功能」；第三方 fork 按 GPL-3.0 自行处理
 
 ## 更新日志
+
+### 1.7.1
+
+- 默认值收敛到 `Config.DEFAULTS`：界面与 hook 侧取同一份，修掉「界面显示关闭、进程里仍在 hook」的错位
+- 1.6.12 的三个旧统计键补迁移，升级后不会静默回落到默认值
+- `hookBySignature` 补记跳过的类名，`allByName` 兜住反射异常；自查新增三项检查，CI 用 `--strict`
 
 ### 1.7.0
 
