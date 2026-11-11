@@ -85,7 +85,7 @@
 | AI 内容识别 | `com.xiaomi.aicr` | OneTrack 埋点；本地识别与推理不受影响 |
 | 广告组件 | `com.miui.systemAdSolution` | 广告使用画像（今日是否打开 / 最后使用时间）、OneTrack 埋点；域名层默认不拦。勾选作用域后要点一次卡片上的「重启」，旧进程不会自动补注入 |
 | 搜狗输入法 | `com.sohu.inputmethod.sogou.xiaomi` | 统计上报（`kpi2` / `instantpb`）、`ClipboardLogHelper` 的剪贴板内容记录 |
-| 小米输入法 | `com.xiaomi.type` | OneTrack 埋点；自研击键统计类名混淆且无稳定域名，未覆盖 |
+| 小米输入法 | `com.xiaomi.type` | OneTrack 埋点；击键统计经 `OneTrack#track` 上报，已由 OneTrack 方法层覆盖 |
 | 百度输入法 | `com.baidu.input_mi` | `com.baidu.stats` 统计 SDK、语音识别 ASR 采集上传 |
 | 讯飞输入法 | `com.iflytek.inputmethod.miui` | `com.iflytek.statssdk` 统计 SDK |
 | 小米服务框架 | `com.xiaomi.xmsf` | 广告接口、OneTrack 统计上报（`tracking.miui.com/track/`） |
