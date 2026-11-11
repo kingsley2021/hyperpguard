@@ -1,0 +1,11 @@
+# 只扫 workflow 里用到的 GitHub Actions 版本。
+# 本项目没有 Gradle / Maven 依赖清单，其它生态扫不出东西，加了只会占位。
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "CI"
