@@ -194,6 +194,12 @@ build.sh              一键构建
 
 ## 更新日志
 
+### 1.7.0
+
+- 界面改版：单页拆成「主页 / 组件拦截 / 关于」三页，底部换成悬浮玻璃导航栏
+- 底栏支持点按、拖动、页面滑动三种切页方式，胶囊与页面共用弹簧曲线；滑动过半即切换选中态
+- 关于页的「版本」行与其余行左右对齐；「清理日志缓冲」的说明改为准确表述
+
 ### 1.6.13
 
 - 输入法开关按「影响同一件事」合并：搜狗 `kpi2` / `instantpb` 合回统计上报，小米 OneTrack 方法与域名合回统计埋点
@@ -211,11 +217,6 @@ build.sh              一键构建
 - 新增网络管理服务（`com.miui.wmsvc`）与 AI 内容识别（`com.xiaomi.aicr`）的 OneTrack 收口
 - 新增四个预装输入法的统计埋点拦截：搜狗（含 `ClipboardLogHelper` 剪贴板记录）、小米（OneTrack）、百度（`com.baidu.stats` + 语音 ASR）、讯飞（`com.iflytek.statssdk`）
 - 输入法拦截排除 `init` / `set` / `start` / `register` 等控制方法；百度语音上传默认关
-
-### 1.6.10
-
-- 修复组开关点击方向相反：开着的组点「关」会请求加入作用域，关着的组点「开」会请求移出；1.6.5–1.6.9 均受影响
-- 组开关点击后等作用域确认再落位，组关闭时子项同步禁用
 
 ### 1.6.9
 
@@ -239,6 +240,8 @@ build.sh              一键构建
 - **[frauddb](https://github.com/acnekot/frauddb)**（acnekot，MIT）— `fraud_detection_data.db` 八张表结构与库路径、`tel_number_md5` 算法
 - **[hyperos-dm-report](https://github.com/acxun/hyperos-dm-report)**（作者 [acxun](https://github.com/acxun)，文档 CC BY 4.0）— 运营商 DM 组件的上报链路与加密方式、MiSight 的事件日志域名 `event-log.cnbj1.mi-fds.com`；本文只引用其结论，未复制原文
 - **[misight-viewer](https://github.com/Artriai/misight-viewer)**（作者 [Artriai](https://github.com/Artriai)）— MiSight 数据库字段与事件分类、设备诊断与用户行为记录的区分依据
+- **[KernelSU](https://github.com/tiann/KernelSU)**（GPL-3.0，作者 [tiann](https://github.com/tiann) 与贡献者）— 1.7.0 悬浮底栏的尺寸与配色、`DampedDragAnimation` 的弹簧与按压时序、`MainPagerState` 的翻页同步判据；仅对照参数重写，未复制源码
+- **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— `PagerNavigationSpringSpec` 与 `IosLiquidGlassNavigationBar` 示例，KernelSU 的浮动底栏即由该示例改写而来
 - **libxposed API**（Apache-2.0）、**LSPosed** — 模块入口与作用域接口
 
 第三方组件：`libxposed API 102`（Apache-2.0，编译期依赖），详见 [NOTICE](NOTICE)。
@@ -252,7 +255,7 @@ build.sh              一键构建
 - 模块默认不联网、不收集、不上传任何信息；仅在手动点设置页「检查更新」时向 GitHub API 查询一次版本号，不发送任何设备标识或使用数据；开关配置存在本地，日志只在本地 logcat 读取
 - 「自定义规则」由使用者自行填写，其中方法级规则会直接改变目标进程内方法的返回值；模块不提供任何预置方法级规则，由此产生的应用异常或功能失效由使用者承担
 - 模块名称、包名、图标归作者所有，不得冒充官方版本
-- 与小米、中国联通等厂商无隶属或合作关系，商标归各自权利人
+- 与小米、中国联通等厂商无隶属或合作关系，商标归各自权利人；界面对 KernelSU、compose-miuix-ui 的参考仅为实现思路，不代表其作者认可或背书本项目
 - 按「现状」提供，不提供任何明示或暗示担保
 
 完整九条条款见 [DISCLAIMER.txt](DISCLAIMER.txt)；文件中附有英文摘要，仅供阅读，与中文正文冲突时以中文为准。

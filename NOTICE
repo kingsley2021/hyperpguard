@@ -18,6 +18,18 @@ LSPosed 框架不随本项目分发；模块运行依赖使用者自行安装的
 免责声明与使用边界见 DISCLAIMER.txt。
 第三方组件的版权与商标归各自权利人所有。
 
+界面参数与交互参考（逐项对照源码后重写，未复制代码）：
+
+- KernelSU（GPL-3.0）
+  manager 模块的悬浮底栏实现：FloatingBottomBar.kt、DampedDragAnimation.kt、MainPagerState.kt
+  https://github.com/tiann/KernelSU
+
+- compose-miuix-ui / miuix（Apache-2.0）
+  PagerNavigationSpringSpec（utils/PagerGestureUtils.kt）与
+  IosLiquidGlassNavigationBar 示例，KernelSU 的浮动底栏即由该示例改写而来
+  https://github.com/compose-miuix-ui/miuix
+  Apache License 2.0 全文见 LICENSES/Apache-2.0.txt
+
 第三方文档（仅引用结论，未复制原文）：
 
 - hyperos-dm-report（作者 acxun）

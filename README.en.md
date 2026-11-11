@@ -154,4 +154,4 @@ GPL-3.0, see [LICENSE](LICENSE). Usage terms, legal notes and risk statements ar
 
 ## Credits
 
-HyperCeiler, XSOF Privacy, HyperOS4-XSOF-Analysis, OSAKOo, RooyCo, frauddb, misight-viewer, libxposed, LSPosed and others. The full list with links is in the [Chinese README](README.md#参考来源).
+HyperCeiler, XSOF Privacy, HyperOS4-XSOF-Analysis, OSAKOo, RooyCo, frauddb, misight-viewer, KernelSU, compose-miuix-ui/miuix, libxposed, LSPosed and others. The floating bottom bar introduced in 1.7.0 reuses the dimensions, springs and paging rules of KernelSU (GPL-3.0) and miuix (Apache-2.0), re-implemented from their published sources without copying code; see [NOTICE](NOTICE). The full list with links is in the [Chinese README](README.md#参考来源).

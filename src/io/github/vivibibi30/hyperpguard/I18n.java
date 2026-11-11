@@ -317,6 +317,14 @@ final class I18n {
         EN.put("语音采集上传", "Voice data upload");
         EN.put("com.baidu.speech.utils.analysis；关闭后语音输入仍可用，只是不再上传 ASR 数据",
                 "com.baidu.speech.utils.analysis; voice input still works, ASR data is no longer uploaded");
+        EN.put("清理日志缓冲", "Clear log buffers");
+        EN.put("清空系统 logcat 环形缓冲；只删日志文本，其他应用的日志也会一起清掉。模块配置与行为库不受影响",
+                "Clears the system logcat ring buffers. Only log text is removed; other apps' logs go too. Module config and the behavior database are untouched");
+        EN.put("清空日志缓冲？", "Clear log buffers?");
+        EN.put("会清空系统 logcat 的全部缓冲，包括其他应用的日志。模块配置、行为库和已保存的文件都不受影响。",
+                "This clears every system logcat buffer, including other apps' logs. Module config, the behavior database and saved files are untouched.");
+        EN.put("清空", "Clear");
+        EN.put("已清空", "Cleared");
         EN.put("讯飞输入法", "iFlytek IME");
         EN.put("com.iflytek.statssdk 记录与上传入口；只影响统计",
                 "com.iflytek.statssdk record and upload entries; statistics only");
