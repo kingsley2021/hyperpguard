@@ -194,6 +194,11 @@ build.sh              一键构建
 
 ## 更新日志
 
+### 1.8.0
+
+- 组件拦截页顶端新增搜索框：按开关名称或描述过滤，未命中的行与整张分组卡片一起收起
+- 没有命中时显示「没有匹配的开关」；搜索词在深浅色切换后保留
+
 ### 1.7.1
 
 - 默认值收敛到 `Config.DEFAULTS`：界面与 hook 侧取同一份，修掉「界面显示关闭、进程里仍在 hook」的错位
@@ -216,19 +221,6 @@ build.sh              一键构建
 - 输入法拦截拆成逐项开关：搜狗 `kpi2` / `instantpb` / 剪贴板各一个，小米 OneTrack 方法与域名各一个
 - 默认值按「影响功能的默认关」：百度语音上传、搜狗剪贴板默认关闭
 - 关闭某一项只停对应链路，不影响同组其它项
-
-### 1.6.11
-
-- 新增 MSA 开屏广告拦截（`requestSplashScreen` 返回空 Intent）
-- 新增网络管理服务（`com.miui.wmsvc`）与 AI 内容识别（`com.xiaomi.aicr`）的 OneTrack 收口
-- 新增四个预装输入法的统计埋点拦截：搜狗（含 `ClipboardLogHelper` 剪贴板记录）、小米（OneTrack）、百度（`com.baidu.stats` + 语音 ASR）、讯飞（`com.iflytek.statssdk`）
-- 输入法拦截排除 `init` / `set` / `start` / `register` 等控制方法；百度语音上传默认关
-
-### 1.6.9
-
-- 免责声明重排：正文按段一行，去掉 ASCII 分隔线，编号统一为 `1) `
-- 完整条款按标题、版本行、章节、列表分别上样式，正文 13sp、行距 1.25
-- 首启摘要改用单独的 `DISCLAIMER_BRIEF.txt`，不再按字符截断
 
 更早版本见 [Releases](https://github.com/vivibibi30/hyperpguard/releases) 与 `docs/RELEASE-<版本>.md`。
 

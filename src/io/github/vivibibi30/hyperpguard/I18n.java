@@ -317,6 +317,8 @@ final class I18n {
         EN.put("会清空系统 logcat 的全部缓冲，包括其他应用的日志。模块配置、行为库和已保存的文件都不受影响。",
                 "This clears every system logcat buffer, including other apps' logs. Module config, the behavior database and saved files are untouched.");
         EN.put("已清空", "Cleared");
+        EN.put("搜索", "Search");
+        EN.put("没有匹配的开关", "No matching switches");
         EN.put("讯飞输入法", "iFlytek IME");
         EN.put("com.iflytek.statssdk 记录与上传入口；只影响统计",
                 "com.iflytek.statssdk record and upload entries; statistics only");

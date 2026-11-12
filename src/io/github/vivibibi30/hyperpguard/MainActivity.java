@@ -340,6 +340,28 @@ public class MainActivity extends Activity {
      * 没照搬的部分：lens() 折射要用 Compose + miuix-blur 的 shader，本项目没有 AndroidX/Compose，
      * 用 BitmapShader 玻璃球加渐变高光近似（GlassPill / GlossView）。
      */
+    /* 组件拦截页的搜索：一行一个开关，记下它所在的卡片与前置分隔线，
+     * 过滤时整卡没有命中就一起隐藏，避免留下空的分组标题。 */
+    private static final class SearchHit {
+        final android.view.View card;
+        final android.view.View row;
+        final android.view.View divider;
+        final String text;
+
+        SearchHit(android.view.View card, android.view.View row,
+                  android.view.View divider, String text) {
+            this.card = card;
+            this.row = row;
+            this.divider = divider;
+            this.text = text;
+        }
+    }
+
+    private final java.util.List<SearchHit> searchHits = new ArrayList<>();
+    private android.widget.EditText searchBox;
+    private TextView searchEmpty;
+    private String searchQuery = "";
+
     private final java.util.List<ScrollView> pageScrolls = new ArrayList<>();
     private final java.util.List<LinearLayout> tabViews = new ArrayList<>();
     private int currentTab = 0;
@@ -1160,6 +1182,8 @@ public class MainActivity extends Activity {
     private LinearLayout buildComponentsPage() {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("组件拦截"));
+        searchHits.clear();
+        root.addView(buildSearchBox());
         LinearLayout bulk = new LinearLayout(this);
         bulk.setOrientation(LinearLayout.HORIZONTAL);
         bulk.setPadding(0, 0, 0, dp(10));
@@ -1186,7 +1210,11 @@ public class MainActivity extends Activity {
             c.addView(scopeHint);
             scopeHints.put(g.pkg, scopeHint);
             for (Item it : g.items) {
-                if (c.getChildCount() > 0) c.addView(divider());
+                android.view.View dv = null;
+                if (c.getChildCount() > 0) {
+                    dv = divider();
+                    c.addView(dv);
+                }
                 LinearLayout row = new LinearLayout(this);
                 row.setOrientation(LinearLayout.HORIZONTAL);
                 row.setGravity(Gravity.CENTER_VERTICAL);
@@ -1196,11 +1224,133 @@ public class MainActivity extends Activity {
                 children.add(sw);
                 rows.add(row);
                 c.addView(row);
+                searchHits.add(new SearchHit(c, row, dv,
+                        (it.name + " " + (it.desc == null ? "" : it.desc))
+                                .toLowerCase(java.util.Locale.ROOT)));
             }
             root.addView(c);
             setGroupUi(g, Config.get(this, g.key, Config.def(g.key)));
         }
+
+        searchEmpty = new TextView(this);
+        searchEmpty.setText(T("没有匹配的开关"));
+        searchEmpty.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        searchEmpty.setTextColor(SUB);
+        searchEmpty.setGravity(Gravity.CENTER);
+        searchEmpty.setPadding(0, dp(24), 0, dp(24));
+        searchEmpty.setVisibility(android.view.View.GONE);
+        root.addView(searchEmpty);
+
+        if (!searchQuery.isEmpty()) applySearchFilter(searchQuery);
         return root;
+    }
+
+    /** 搜索框：48dp 胶囊，左侧自绘放大镜，形状照 HyperCeiler 的设置页搜索条 */
+    private android.view.View buildSearchBox() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        GradientDrawable bg = new GradientDrawable();
+        // 浅色与卡片同色（页面底色是浅灰），深色用卡片色，圆角取高度的一半
+        bg.setColor(nightMode ? 0xFF1C1C1E : 0xFFFFFFFF);
+        bg.setCornerRadius(dp(24));
+        box.setBackground(bg);
+        box.setPadding(dp(16), 0, dp(16), 0);
+
+        android.view.View glass = new SearchGlassIcon(this, SUB);
+        LinearLayout.LayoutParams ilp =
+                new LinearLayout.LayoutParams(dp(18), dp(18));
+        ilp.rightMargin = dp(10);
+        box.addView(glass, ilp);
+
+        searchBox = new android.widget.EditText(this);
+        searchBox.setBackground(null);
+        searchBox.setHint(T("搜索"));
+        searchBox.setHintTextColor(SUB);
+        searchBox.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        searchBox.setTextColor(TEXT);
+        searchBox.setSingleLine(true);
+        searchBox.setPadding(0, 0, 0, 0);
+        searchBox.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        searchBox.setText(searchQuery);
+        searchBox.addTextChangedListener(new android.text.TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence c, int a, int b, int d) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence c, int a, int b, int d) {
+            }
+
+            @Override
+            public void afterTextChanged(android.text.Editable e) {
+                searchQuery = e.toString();
+                applySearchFilter(searchQuery);
+            }
+        });
+        box.addView(searchBox, new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+        lp.bottomMargin = dp(10);
+        box.setLayoutParams(lp);
+        return box;
+    }
+
+    /** 按名称/描述过滤；整张卡片都不命中时连分组标题一起隐藏 */
+    private void applySearchFilter(String q) {
+        if (searchHits.isEmpty()) return;
+        String k = q == null ? "" : q.trim().toLowerCase(java.util.Locale.ROOT);
+        java.util.HashMap<android.view.View, Boolean> cards = new java.util.HashMap<>();
+        boolean any = false;
+        for (SearchHit h : searchHits) {
+            boolean show = k.isEmpty() || h.text.contains(k);
+            h.row.setVisibility(show ? android.view.View.VISIBLE : android.view.View.GONE);
+            if (h.divider != null) {
+                h.divider.setVisibility(show ? android.view.View.VISIBLE : android.view.View.GONE);
+            }
+            Boolean cur = cards.get(h.card);
+            cards.put(h.card, show || (cur != null && cur));
+            if (show) any = true;
+        }
+        for (java.util.Map.Entry<android.view.View, Boolean> e : cards.entrySet()) {
+            e.getKey().setVisibility(e.getValue()
+                    ? android.view.View.VISIBLE : android.view.View.GONE);
+        }
+        if (searchEmpty != null) {
+            searchEmpty.setVisibility(k.isEmpty() || any
+                    ? android.view.View.GONE : android.view.View.VISIBLE);
+        }
+    }
+
+    /** 放大镜：一个圆环加一条斜手柄，尺寸跟着视图走 */
+    private static final class SearchGlassIcon extends android.view.View {
+        private final android.graphics.Paint paint =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final int color;
+
+        SearchGlassIcon(android.content.Context c, int color) {
+            super(c);
+            this.color = color;
+        }
+
+        @Override
+        protected void onDraw(android.graphics.Canvas canvas) {
+            float s = Math.min(getWidth(), getHeight());
+            float cx = getWidth() / 2f;
+            float cy = getHeight() / 2f;
+            float r = s * 0.29f;
+            float ox = cx - s * 0.07f;
+            float oy = cy - s * 0.07f;
+            paint.setColor(color);
+            paint.setStyle(android.graphics.Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(1.5f, s * 0.10f));
+            paint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+            canvas.drawCircle(ox, oy, r, paint);
+            canvas.drawLine(ox + r * 0.70f, oy + r * 0.70f,
+                    cx + s * 0.30f, cy + s * 0.30f, paint);
+        }
     }
 
     /** 关于：仓库、模块页、反馈、版本、更新与免责声明 */
