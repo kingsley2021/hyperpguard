@@ -31,6 +31,11 @@ After an in-place upgrade, LSPosed does **not** automatically add newly declared
 
 ## Usage
 
+<p align="center">
+  <img alt="Main screen: global switches and the floating bottom bar" src="docs/images/ui-home.png" width="420">
+</p>
+
+
 - **Group switch**: the toggle in the card header mirrors that package's LSPosed scope state. Turning it on requests scope through the framework API; if the framework refuses, a dialog explains what to tick manually.
 - **Sub-switches**: "on" means the behaviour is blocked. Rules that can affect system features default to off, and the subtitle states the cost.
 - **Restart**: applies `am force-stop` to the target package so it reloads with the new rules. System components are usually restarted by the system within seconds.
