@@ -319,6 +319,8 @@ final class I18n {
         EN.put("已清空", "Cleared");
         EN.put("搜索", "Search");
         EN.put("没有匹配的开关", "No matching switches");
+        EN.put("本机未安装该组件", "Not installed on this device");
+        EN.put("本机未安装该组件，无需加入作用域", "This component is not installed on this device");
         EN.put("讯飞输入法", "iFlytek IME");
         EN.put("com.iflytek.statssdk 记录与上传入口；只影响统计",
                 "com.iflytek.statssdk record and upload entries; statistics only");

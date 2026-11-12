@@ -357,6 +357,10 @@ public class MainActivity extends Activity {
         }
     }
 
+    /* 本机没有安装的组件：作用域永远加不上，提示要常显、点击要挡掉，
+     * 否则会陷入「点加入 → 失败 → 开关回滚」的循环（issue #26）。 */
+    private final java.util.Set<String> missingGroups = new java.util.HashSet<>();
+
     private final java.util.List<SearchHit> searchHits = new ArrayList<>();
     private android.widget.EditText searchBox;
     private TextView searchEmpty;
@@ -1200,13 +1204,17 @@ public class MainActivity extends Activity {
 
             c.addView(groupHeader(g, rows));
             if (g.note != null) c.addView(groupNote(g.note));
+            boolean present = isInstalled(g.pkg);
+            if (!present) missingGroups.add(g.pkg);
             TextView scopeHint = new TextView(this);
-            scopeHint.setText(T("未在作用域，点此加入"));
+            scopeHint.setText(T(present ? "未在作用域，点此加入" : "本机未安装该组件"));
             scopeHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-            scopeHint.setTextColor(ACCENT);
+            scopeHint.setTextColor(present ? ACCENT : SUB);
             scopeHint.setPadding(dp(4), dp(10), 0, dp(8));
             scopeHint.setVisibility(android.view.View.GONE);
-            scopeHint.setOnClickListener(v -> ensureInScope(g));
+            if (present) {
+                scopeHint.setOnClickListener(v -> ensureInScope(g));
+            }
             c.addView(scopeHint);
             scopeHints.put(g.pkg, scopeHint);
             for (Item it : g.items) {
@@ -1719,7 +1727,9 @@ public class MainActivity extends Activity {
     private void setGroupUi(Group g, boolean on, boolean animate) {
         TextView scopeHint = scopeHints.get(g.pkg);
         if (scopeHint != null) {
-            scopeHint.setVisibility(on ? android.view.View.GONE : android.view.View.VISIBLE);
+            boolean missing = missingGroups.contains(g.pkg);
+            scopeHint.setVisibility(missing || !on
+                    ? android.view.View.VISIBLE : android.view.View.GONE);
         }
         updatingSwitch = true;
         Switch gs = groupSwitches.get(g.pkg);
@@ -1979,6 +1989,12 @@ public class MainActivity extends Activity {
             ((PgSwitch) sw).setOnToggleRequest(target -> {
                 if (updatingSwitch) return;
                 if (target) {
+                    if (!isInstalled(g.pkg)) {
+                        Toast.makeText(this,
+                                T("本机未安装该组件，无需加入作用域"),
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
                     requestAdd(g.pkg, g, sw);
                 } else {
                     requestRemove(g.pkg, g, sw);
