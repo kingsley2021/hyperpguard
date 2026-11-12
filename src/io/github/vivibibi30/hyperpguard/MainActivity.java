@@ -104,7 +104,7 @@ public class MainActivity extends Activity {
     /** 组总开关默认开启：状态由 LSPosed 真实作用域回填，不看本地默认值 */
     private static final Group[] GROUPS = {
             new Group(T("SystemHelper"), "com.mobiletools.systemhelper", Config.K_G_SYSHELPER, new Item[]{
-                    new Item(T("拦截上报"), T("dm.wo.com.cn，设备 / SIM / 基站 / 应用列表"), Config.K_SYSHELPER),
+                    new Item(T("上报"), T("dm.wo.com.cn，设备 / SIM / 基站 / 应用列表"), Config.K_SYSHELPER),
                     new Item(T("整进程断网"), T("默认关：只拦上报域名与方法层。开启后该进程所有外网请求一并拦截，只留本机回环"), Config.K_SYSHELPER_ALLNET),
                     new Item(T("定位（GPS）"), T("只对本应用：位置查询返回空"), Config.K_LOC_SH),
                     new Item(T("基站信息"), T("只对本应用：基站查询返回空，不影响信号显示"), Config.K_CELL_SH),
@@ -115,14 +115,14 @@ public class MainActivity extends Activity {
                     new Item(T("AI 通话预警云检测"), T("detection-aigc.engine.miui.com"), Config.K_GUARD_AIGC),
                     new Item(T("反诈配置拉取"), T("fraud-detection.engine.miui.com"), Config.K_GUARD_FRAUD),
                     new Item(T("云查上传（Flamingo）"), T("virus-engine.sec.miui.com；关闭后不再上传应用清单，本地病毒库照常"), Config.K_GP_CLOUDSCAN),
-                    new Item(T("静默录屏拦截"), T("阻止 createVirtualDisplay 整屏录制，不影响正常截屏"), Config.K_GP_SCREENGUARD),
+                    new Item(T("静默录屏"), T("阻止 createVirtualDisplay 整屏录制，不影响正常截屏"), Config.K_GP_SCREENGUARD),
                     new Item(T("引擎日志上传"), T("logupdate.avlyun.sec.miui.com；只影响日志回传，不影响本地查毒与病毒库更新"), Config.K_GP_ENGINELOG),
                     new Item(T("定位（GPS）"), T("只对本应用：位置查询返回空"), Config.K_LOC_GP),
                     new Item(T("Wi-Fi 扫描"), T("只对本应用：扫描列表置空，SSID / BSSID 清空"), Config.K_WIFI_GP),
                     new Item(T("通讯录 / 通话读取"), T("只对本应用：查询返回空；来电识别会受影响"), Config.K_SOCIAL_GP),
             }, T("AI 反诈逻辑在本组件的 AiGuardService 内，用于通话场景；SystemHelper 只做运营商侧上报")),
             new Group(T("安全中心"), "com.miui.securitycenter", Config.K_G_SECCENTER, new Item[]{
-                    new Item(T("XSOF 行为查询拦截"), T("第三方查不到截图 / 通话 / 屏幕共享记录"), Config.K_XSOF),
+                    new Item(T("XSOF 行为查询"), T("第三方查不到截图 / 通话 / 屏幕共享记录"), Config.K_XSOF),
                     new Item(T("反诈配置拉取"), T("fraud-detection.engine.miui.com"), Config.K_SECCENTER),
                     new Item(T("病毒库云查"), T("virus-engine.sec.miui.com，关闭后不再云端查毒"), Config.K_SC_VIRUS),
                     new Item(T("XSOF 合作方鉴权"), T("framework.sec.miui.com，可能影响第三方调用"), Config.K_SC_FRAMEWORK),
@@ -131,15 +131,15 @@ public class MainActivity extends Activity {
                     new Item(T("志愿者传感器上报"), T("OAID + 经纬度 + 时间；非志愿者无影响"), Config.K_SC_VOLUNTEER),
                     new Item(T("地震/报警/EPS 定位"), T("关闭后地震预警、紧急报警定位可能失效"), Config.K_SC_LOCATION),
                     new Item(T("ADB 授权验证"), T("srv.sec.miui.com/data/adb；关闭后 ADB 安装授权可能失败"), Config.K_SC_ADB),
-                    new Item(T("行为库写入拦截"), T("拦截 screenshot / screen_share / voip_record 等 8 张表的写入"), Config.K_SC_DBGUARD),
-                    new Item(T("设备标识拦截"), T("IMSI / ICCID / 手机号 / IMEI；打开后剩余流量、套餐查询会失效"), Config.K_SC_IDS),
+                    new Item(T("行为库写入"), T("拦截 screenshot / screen_share / voip_record 等 8 张表的写入"), Config.K_SC_DBGUARD),
+                    new Item(T("设备标识"), T("IMSI / ICCID / 手机号 / IMEI；打开后剩余流量、套餐查询会失效"), Config.K_SC_IDS),
                     new Item(T("广告位与推送下发"), T("adv 广告位、网络助手推送、满意度问卷；关闭后这几处不再拉取配置"), Config.K_SC_MISC),
                     new Item(T("统计埋点上报"), T("tracking.*.miui.com / sdkconfig.*.xiaomi.com；只影响统计，不影响功能"), Config.K_SC_TRACKING),
                     new Item(T("定位（GPS）"), T("只对本应用：位置查询返回空"), Config.K_LOC_SC),
                     new Item(T("通讯录 / 通话 / 短信读取"), T("只对本应用：查询返回空；来电识别会受影响"), Config.K_SOCIAL_SC),
             }),
             new Group(T("小米统计"), "com.miui.analytics", Config.K_G_ANALYTICS, new Item[]{
-                    new Item(T("拦截上报"), T("tracking / om.tracking / sdkconfig"), Config.K_ANALYTICS),
+                    new Item(T("上报"), T("tracking / om.tracking / sdkconfig"), Config.K_ANALYTICS),
                     new Item(T("阻断 DoH 旁路"), T("dns.google 与 8.8.8.8，防解析绕过域名规则"), Config.K_ANALYTICS_DOH),
                     new Item(T("全断网（推荐）"), T("该进程所有外网请求一并拦截；云端换域名也不用管"), Config.K_ANALYTICS_ALLNET),
             }),
@@ -192,7 +192,7 @@ public class MainActivity extends Activity {
                     new Item(T("基站信息"), T("只对本应用：基站查询返回空，不影响信号显示"), Config.K_CELL_REG),
             }),
             new Group(T("移动 DM（RegService）"), "com.miui.dmregservice", Config.K_G_DMREG, new Item[]{
-                    new Item(T("拦截上报"), T("fxltsbl.com；App 清单 / SIM 标识"), Config.K_DMREG),
+                    new Item(T("上报"), T("fxltsbl.com；App 清单 / SIM 标识"), Config.K_DMREG),
                     new Item(T("基站信息"), T("只对本应用：基站查询返回空，不影响信号显示"), Config.K_CELL_DM),
                     new Item(T("Wi-Fi 扫描"), T("只对本应用：扫描列表置空，SSID / BSSID 清空"), Config.K_WIFI_DM),
             }),
@@ -1157,10 +1157,10 @@ public class MainActivity extends Activity {
         makeSwitchRow(global, "总开关", "关闭后本模块在所有进程不生效",
                 Config.K_MASTER, true);
         global.addView(divider());
-        makeSwitchRow(global, "路径特征拦截", "按路径特征识别上报，是否生效",
+        makeSwitchRow(global, "路径特征", "按路径特征识别上报，是否生效",
                 Config.K_PATH, true);
         global.addView(divider());
-        makeSwitchRow(global, "记录未拦截访问", "把没命中规则的域名写进日志，排查漏拦时临时打开",
+        makeSwitchRow(global, "记录未命中访问", "把没命中规则的域名写进日志，排查漏拦时临时打开",
                 Config.K_SNIFF, true);
         global.addView(divider());
         addFraudDbRow(global);

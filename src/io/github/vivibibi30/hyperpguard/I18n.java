@@ -75,7 +75,7 @@ final class I18n {
         EN.put("翻译组件", "Translation");
 
         // SystemHelper
-        EN.put("拦截上报", "Block reporting");
+        EN.put("上报", "Reporting");
         EN.put("dm.wo.com.cn，设备 / SIM / 基站 / 应用列表",
                 "dm.wo.com.cn — device / SIM / cell / installed apps");
         EN.put("整进程断网", "Block all traffic");
@@ -107,7 +107,7 @@ final class I18n {
         EN.put("云查上传（Flamingo）", "Cloud scan upload (Flamingo)");
         EN.put("virus-engine.sec.miui.com；关闭后不再上传应用清单，本地病毒库照常",
                 "virus-engine.sec.miui.com; app list is no longer uploaded, local virus database still works");
-        EN.put("静默录屏拦截", "Block silent screen recording");
+        EN.put("静默录屏", "Silent screen recording");
         EN.put("阻止 createVirtualDisplay 整屏录制，不影响正常截屏",
                 "Blocks createVirtualDisplay; normal screenshots unaffected");
         EN.put("引擎日志上传", "Engine log upload");
@@ -117,7 +117,7 @@ final class I18n {
                 "AI anti-fraud runs in this component's AiGuardService for calls; SystemHelper only handles carrier-side reporting");
 
         // securitycenter
-        EN.put("XSOF 行为查询拦截", "Block XSOF behaviour queries");
+        EN.put("XSOF 行为查询", "XSOF behaviour queries");
         EN.put("第三方查不到截图 / 通话 / 屏幕共享记录",
                 "Third parties can no longer read screenshots, calls or screen-share records");
         EN.put("病毒库云查", "Virus database cloud check");
@@ -141,10 +141,10 @@ final class I18n {
         EN.put("ADB 授权验证", "ADB auth check");
         EN.put("srv.sec.miui.com/data/adb；关闭后 ADB 安装授权可能失败",
                 "srv.sec.miui.com/data/adb; ADB install auth may fail");
-        EN.put("行为库写入拦截", "Block behaviour DB writes");
+        EN.put("行为库写入", "Behaviour DB writes");
         EN.put("拦截 screenshot / screen_share / voip_record 等 8 张表的写入",
                 "Blocks writes to 8 tables including screenshot, screen_share and voip_record");
-        EN.put("设备标识拦截", "Block device identifiers");
+        EN.put("设备标识", "Device identifiers");
         EN.put("IMSI / ICCID / 手机号 / IMEI；打开后剩余流量、套餐查询会失效",
                 "IMSI / ICCID / phone number / IMEI; data-usage and plan queries may fail");
         EN.put("广告位与推送下发", "Ad slots and push config");
@@ -228,9 +228,9 @@ final class I18n {
         EN.put("开关打开 = 拦截该行为，关闭 = 放行", "On = block, off = allow");
         EN.put("总开关", "Master switch");
         EN.put("关闭后本模块在所有进程不生效", "When off, the module does nothing in any process");
-        EN.put("路径特征拦截", "Path matching");
+        EN.put("路径特征", "Path matching");
         EN.put("按路径特征识别上报，是否生效", "Whether path-based report detection applies");
-        EN.put("记录未拦截访问", "Log unblocked hosts");
+        EN.put("记录未命中访问", "Log unmatched hosts");
         EN.put("把没命中规则的域名写进日志，排查漏拦时临时打开",
                 "Writes hosts that matched no rule to the log; enable temporarily when hunting for missed rules");
         EN.put("行为库状态", "Behaviour DB status");
