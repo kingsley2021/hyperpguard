@@ -31,22 +31,13 @@ Android 10 – Android 16 的 HyperOS，LSPosed 2.2.x（libxposed API 100+）。
 
 | 层 | 内容 |
 |---|---|
-| 网络出口 | `URL#openConnection`、`InetAddress`、`Socket` 三处拦截，规则为「域名后缀 + 可选路径」 |
-| 隐私 API | 应用列表、使用记录、设备标识、短信发送、XMSF 代发广播 |
-| 行为库 | 按 `screenshot` / `screen_share` / `voip_record` 等 8 张表名拦截 `SQLiteDatabase` 写入 |
-| 静默录屏 | `MediaProjection#createVirtualDisplay` 不再建立 |
-| XSOF | Provider / AIDL / 写库 / 评分四层 |
-| 整进程断网 | SystemHelper、小米统计 |
+| 采集入口 | 在数据来源处截断：应用列表、使用记录、设备标识、位置与网络环境查询返回空 |
+| 本地存储 | 拦截行为记录类数据库的写入 |
+| 对外接口 | 拦截跨进程查询与评分接口 |
+| 网络出口 | 拦截目标进程内的域名解析与连接，按「域名后缀 + 可选路径」匹配 |
+| 兜底 | 反射定位方法后返回默认值；类名变化时网络层仍生效 |
 
-覆盖组件：SystemHelper、系统安全组件、安全中心、小米统计、应用安装器、应用商店、小米服务框架、运营商服务、小米可信服务、翻译组件。
-
-会影响系统功能的规则一律默认关闭（云查、XSOF 合作方鉴权、月报、防窥分类、地震报警定位、ADB 验证、设备证书、运营商注册），副标题写明代价。
-
-## 界面
-
-| 总开关 / 批量操作 | 分组卡片 |
-|---|---|
-| ![主界面](https://raw.githubusercontent.com/vivibibi30/hyperpguard/main/docs/images/ui-main.png) | ![分组卡片](https://raw.githubusercontent.com/vivibibi30/hyperpguard/main/docs/images/ui-cards.png) |
+按应用分组，每个应用的开关等同于它在 LSPosed 里的作用域开关。会影响系统功能的规则一律默认关闭，副标题写明代价。
 
 ## 常见问题
 

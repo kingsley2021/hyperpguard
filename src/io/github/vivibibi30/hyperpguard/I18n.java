@@ -229,7 +229,7 @@ final class I18n {
         EN.put("总开关", "Master switch");
         EN.put("关闭后本模块在所有进程不生效", "When off, the module does nothing in any process");
         EN.put("路径特征拦截", "Path matching");
-        EN.put("路径规则（/avl/upload 等）是否生效", "Whether path rules such as /avl/upload apply");
+        EN.put("按路径特征识别上报，是否生效", "Whether path-based report detection applies");
         EN.put("记录未拦截访问", "Log unblocked hosts");
         EN.put("把没命中规则的域名写进日志，排查漏拦时临时打开",
                 "Writes hosts that matched no rule to the log; enable temporarily when hunting for missed rules");

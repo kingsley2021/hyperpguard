@@ -17,3 +17,5 @@ Using it requires root and LSPosed. Rooting and system modification may void war
 The module is offline by default and collects or uploads nothing. It contacts api.github.com once only when you tap "Check for updates". All switches are stored locally.
 
 Tap "Full terms" below for the complete notice.
+
+如权利人认为本项目某项描述或实现不当，可通过仓库 Issues 或主页公布的公开渠道提出，作者核实后会调整或移除相应内容。

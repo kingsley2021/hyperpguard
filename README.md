@@ -39,7 +39,7 @@
 
 作用域外的应用不会被注入。
 
-覆盖升级后，LSPosed 的作用域不会自动包含新增组件，需要到 LSPosed → 模块 → HyperPGuard → 作用域 里重新确认；1.6.x 新增的是「广告组件（MSA）」与「系统诊断」，漏勾时对应分组会显示「未在作用域，点此加入」。
+覆盖升级后，LSPosed 的作用域不会自动包含新增组件，需要到 LSPosed → 模块 → HyperPGuard → 作用域 里重新确认；漏勾时对应分组会显示「未在作用域，点此加入」，本机没有安装的组件会显示「本机未安装该组件」。
 
 ## 使用
 
@@ -59,55 +59,39 @@
 
 ## 拦截层次
 
+按数据处理顺序分四层，方法层作为类名失配时的兜底：
+
 | 层 | 做法 |
 |---|---|
-| 网络出口 | Hook `URL#openConnection`、`InetAddress#getByName`、`Socket` 构造与 `connect`，规则为「域名后缀 + 可选路径」 |
-| 隐私 API | 应用列表、使用记录、设备标识、短信发送、XMSF 代发广播，在数据来源处截断 |
-| 行为库 | 按 `screenshot` / `screen_share` / `call_forwarding` / `airplane_mode` / `fraud_phone` / `voip_record` / `fraud_url` / `install_app` 八张表名拦 `SQLiteDatabase` 写入 |
-| 静默录屏 | `MediaProjection#createVirtualDisplay` 不建立 |
-| 方法层 | 反射定位方法后直接返回：SystemHelper 发送与入队、analytics 使用记录聚合 |
-| XSOF | Provider / AIDL / 写库 / 评分四层，第三方查不到截图、通话、屏幕共享记录 |
+| 采集入口 | 在数据来源处截断：应用列表、使用记录、设备标识、位置与网络环境查询直接返回空 |
+| 本地存储 | 拦截行为记录类数据库的写入，写不进去也就无从打包上传 |
+| 对外接口 | 拦截跨进程查询接口与风险评分接口，第三方应用拿不到这些记录 |
+| 网络出口 | 拦截目标进程内的域名解析与连接，按「域名后缀 + 可选路径」匹配 |
+| 兜底 | 反射定位特定方法后返回默认值；类名随版本变化时，网络层仍然生效 |
 
-方法层与网络层互不依赖：类名变化时域名规则仍在工作，域名更换时方法层仍在工作，日志能分辨是哪一层命中。
+四层互不依赖：某层因版本变化失效时其余层照常工作，日志能分辨是哪一层命中。
 
-## 覆盖组件
+## 覆盖范围
 
-| 组件 | 包名 | 拦截内容 |
-|---|---|---|
-| SystemHelper | `com.mobiletools.systemhelper` | 运营商设备管理 / 网络优化组件（非恶意软件；内置 UNICOM 证书、上报 `dm.wo.com.cn`）；默认只拦上报域名与方法层，「整进程断网」默认关；定位 / 基站 / Wi-Fi 扫描默认关 |
-| 系统安全组件 | `com.miui.guardprovider` | 应用列表云查、AI 通话预警云检测、反诈配置（AI 反诈逻辑 `AiGuardService` 在本组件内，用于通话场景）；静默录屏拦截默认开，Flamingo 云查上传默认关；定位 / Wi-Fi / 通讯录通话默认关 |
-| 安全中心 | `com.miui.securitycenter` | XSOF 查询与写库、行为库写入、反诈配置、OneTrack 统计埋点、志愿者传感器上报；云查 / 鉴权 / 月报 / 防窥分类 / 地震报警定位 / ADB 验证 / 设备标识默认关；定位、通讯录 / 通话 / 短信默认关 |
-| 小米统计 | `com.miui.analytics` | 整域 + DoH 旁路；默认整进程断网 |
-| 应用安装器 | `com.miui.packageinstaller` | AVL 上报、活跃统计、安装页广告位 |
-| 应用商店 | `com.xiaomi.market` | 广告配置下发、OneTrack 统计上报（`tracking.miui.com/track/`） |
-| 广告组件 | `com.miui.systemAdSolution` | 广告使用画像（今日是否打开 / 最后使用时间）、OneTrack 埋点、开屏广告（`requestSplashScreen` 返回空 Intent）；域名层默认不拦。勾选作用域后要点一次卡片上的「重启」，旧进程不会自动补注入 |
-| 网络管理服务 | `com.miui.wmsvc` | 诊断类 OneTrack 埋点、`tracking.*.miui.com`；只影响统计 |
-| AI 内容识别 | `com.xiaomi.aicr` | OneTrack 埋点；本地识别与推理不受影响 |
-| 广告组件 | `com.miui.systemAdSolution` | 广告使用画像（今日是否打开 / 最后使用时间）、OneTrack 埋点；域名层默认不拦。勾选作用域后要点一次卡片上的「重启」，旧进程不会自动补注入 |
-| 搜狗输入法 | `com.sohu.inputmethod.sogou.xiaomi` | 统计上报（`kpi2` / `instantpb`）、`ClipboardLogHelper` 的剪贴板内容记录 |
-| 小米输入法 | `com.xiaomi.type` | OneTrack 埋点；击键统计据第三方静态分析经 `OneTrack#track` 发出，由 OneTrack 方法层覆盖 |
-| 百度输入法 | `com.baidu.input_mi` | `com.baidu.stats` 统计 SDK、语音识别 ASR 采集上传 |
-| 讯飞输入法 | `com.iflytek.inputmethod.miui` | `com.iflytek.statssdk` 统计 SDK |
-| 小米服务框架 | `com.xiaomi.xmsf` | 广告接口、OneTrack 统计上报（`tracking.miui.com/track/`） |
-| 运营商服务 | `com.xiaomi.registration` | 明文 CTEI 上报（默认拦）、设备注册（默认关）；定位 / 基站默认关 |
-| 移动 DM | `com.miui.dmregservice` | `fxltsbl.com` 上报、App 清单、SIM 标识；基站 / Wi-Fi 扫描默认关 |
-| 系统诊断 | `com.miui.misightservice` | 日志上传 `feedback.miui.com/misight/upload`、售后检测 `port.sec.miui.com/mqsas`、客服诊断 `chat.kefu.mi.com/openapi/misight/diagnostic`；触发条件是用户主动反馈或售后远程诊断，本地记录不等于已上传 |
-| 小米可信服务 | `com.xiaomi.trustservice` | MRM 认证链、设备证书/密钥上报（均默认关） |
-| 翻译组件 | `com.xiaomi.aiasst.vision` | 语音识别上传（`/speech/`），默认关 |
+按能力分类，不逐一列出目标组件与包名；需要精确拦截范围时，请在自己的设备上对照界面里每个开关的描述。
 
-## 界面预览
-
-| 总开关 / 批量操作 | 分组卡片 |
+| 类别 | 拦的是什么 |
 |---|---|
-| ![主界面](docs/images/ui-main.png) | ![分组卡片](docs/images/ui-cards.png) |
+| 统计与埋点 | 统计类组件的上报事件，方法层与域名层各有一条路径 |
+| 设备与位置 | 设备标识、基站与 Wi-Fi 扫描、定位查询按应用单独开关，默认关闭 |
+| 行为记录 | 截图、通话、屏幕共享等行为记录的写入，以及对外的查询与评分接口 |
+| 诊断与反馈 | 系统诊断与售后远程诊断的日志上传；触发条件是用户主动反馈或售后操作，本地记录不等于已上传 |
+| 运营商侧 | 设备管理组件的上报域名与方法层，只拦上报，不回收已授予的权限 |
+| 输入法 | 统计上报、剪贴板内容记录、语音数据上传 |
+| 广告与商店 | 广告使用画像、开屏广告、配置下发与统计上报 |
 
-每组右上角就是该应用在 LSPosed 里的作用域开关；组关闭时组内子项置灰且不可点击。
+每个应用在界面里是一张卡片：右上角是它在 LSPosed 里的作用域开关，卡片内是逐项规则，会影响系统功能的规则默认关闭并在副标题写明代价。
 
 ## 日志说明
 
 | 前缀 | 含义 |
 |---|---|
-| `attach <包名>` | 模块注入某进程成功 |
+| `attach <进程>` | 模块注入某进程成功 |
 | `X(host)` | 域名规则命中；带路径规则时是 `X(host+path)`，grep 建议用 `grep -F 'X(host'` |
 | `X(host+path)` | 域名 + 路径规则命中 |
 | `X(strict)` | 整进程断网生效 |
@@ -123,7 +107,7 @@
 
 1. 启用模块，并对目标应用点一次「重启」
 2. 触发一次它的上报行为（例如打开安全中心、安装一个应用）
-3. 点「查看日志」，应看到 `attach <包名>` 与 `X(...)` 记录
+3. 点「查看日志」，应看到 `attach <进程>` 与 `X(...)` 记录
 4. XSOF 部分应全是 `hooked`，没有 `miss`
 5. 只有 `attach` 没有 `X(...)` 时，打开「记录未拦截访问」跑一段时间，把 `?` 开头的域名补进规则
 
@@ -173,11 +157,11 @@ build.sh              一键构建
 - 方法层类名随组件版本变化，日志里 `hook miss` 属正常，网络层与隐私 API 层不受影响
 - 使用 native 网络栈（Cronet 等）的请求不受 Java 层 hook 影响
 - `IMrm` 属 HAL 层，仅从 `ServiceManager` 侧断开
-- `com.xiaomi.xmsf` 代发属于跨进程交接，只拦 analytics 自身 UID 覆盖不到
+- 部分代发链路属于跨进程交接，只拦模块自身作用域覆盖不到的那一段
 - 拦截范围限于已识别的通道，不代表覆盖 HyperOS 全部联网行为
-- `com.mobiletools.systemhelper` 的权限在新机激活（OOBE）阶段授予，激活时的权限弹窗值得逐项看清；本模块只拦上报，不回收已授予的权限。对授权有疑虑时，可在设置里找「隐私与安全 / 反馈 / 用户体验计划」这类入口，或备份后重置手机重走开机引导
+- 运营商侧组件的权限在新机激活（OOBE）阶段授予，激活时的权限弹窗值得逐项看清；本模块只拦上报，不回收已授予的权限。对授权有疑虑时，可在设置里找「隐私与安全 / 反馈 / 用户体验计划」这类入口，或备份后重置手机重走开机引导
 - 识别结论以静态分析与真机行为对照为准，单看一段静态代码不足以定性
-- AI 反诈逻辑位于 `com.miui.guardprovider` 的 `AiGuardService`，用于通话场景；`com.mobiletools.systemhelper` 承担运营商侧的数据上报，两者不是同一条链路
+- 安全组件里的反诈逻辑用于通话场景，运营商侧组件承担的是设备管理侧的上报，两者不是同一条链路
 
 ## 常见问题
 
@@ -193,6 +177,12 @@ build.sh              一键构建
 - 本项目不做付费分发，也不提供「赞助解锁功能」；第三方 fork 按 GPL-3.0 自行处理
 
 ## 更新日志
+
+### 1.8.3
+
+- 公开描述收敛：README 不再逐条列出目标组件、包名与上报地址，改按能力分类说明；「拦截层次」按四层重写
+- 移除界面预览截图（截图里含组件名与上报地址）；界面两处文案不再出现具体路径与库名
+- 免责声明更新到 1.15：新增权利人沟通渠道一条，升级后首次打开会重新展示一次摘要
 
 ### 1.8.2
 
@@ -238,16 +228,16 @@ build.sh              一键构建
 
 以下项目的公开资料提供了识别目标与验证思路。本项目代码独立编写，未复制、未反编译复用其实现。
 
-- **[HyperCeiler](https://github.com/ReChronoRain/HyperCeiler)**（GPL-3.0，作者 [Sevtinge](https://github.com/Sevtinge)，现维护于 [ReChronoRain](https://github.com/ReChronoRain)）— analytics 目标方法、`flash.sec.miui.com/detect/app`、安装器 `/avl/upload` 与方法层匹配思路、MRM 拦截思路
+- **[HyperCeiler](https://github.com/ReChronoRain/HyperCeiler)**（GPL-3.0，作者 [Sevtinge](https://github.com/Sevtinge)，现维护于 [ReChronoRain](https://github.com/ReChronoRain)）— 统计组件的目标方法、安装器的上报路径、方法层匹配与 MRM 拦截思路
 - **[XSOF Privacy](https://github.com/yunyizea/xsof-privacy)**（作者 yunyizea）— 8 类行为记录的拦截范围、`(null, 1017)` 拒绝语义、按组组织 hook
 - **Hyper 隐私卫士**（`io.github.hyperprivacyguard`）— SystemHelper 采集入口特征、guardprovider 应用列表采集
-- **[HyperOS4-XSOF-Analysis](https://github.com/FAQQAQ/HyperOS4-XSOF-Analysis)**（作者 [FAQQAQ](https://github.com/FAQQAQ)）— 7 个组件的静态分析记录：整域范围、`om.tracking.miui.com/track/mt`、区域与备份域、DoH 重试、`framework.sec.miui.com`、`virus-engine.sec.miui.com`、地震/报警/EPS 族、`typdm.tydevice.com` 明文上报、analytics 6.33.0 的 `a.b.a.*` 结构
-- **[OSAKOo](https://www.coolapk.com/feed/74882729?s=MzNlYzk4NWUxNWZhMjRnNmFlZTFjMDJ6a1664)**（酷安）— `fraud_detection_data.db` 八张表与 `screenshort_time` 拼写、`createScreenCaptureIntent` 零调用与 `privateLookupIn` 反射调用、`clip.mp4` 上报链路、SystemHelper 采集项与明文上报、六个域名的实际用途
+- **[HyperOS4-XSOF-Analysis](https://github.com/FAQQAQ/HyperOS4-XSOF-Analysis)**（作者 [FAQQAQ](https://github.com/FAQQAQ)）— 7 个组件的静态分析记录：上报域范围与区域备份域、DoH 重试、明文上报链路、统计组件的内部结构
+- **[OSAKOo](https://www.coolapk.com/feed/74882729?s=MzNlYzk4NWUxNWZhMjRnNmFlZTFjMDJ6a1664)**（酷安）— 行为库的表结构与拼写特征、截屏接口的调用方式、视频上报链路、运营商侧组件的采集项与实际用途
 - **[Android OS Privacy Under the Loupe – A Tale from the East](https://ar5iv.labs.arxiv.org/html/2302.01890)**（ACM WiSec '23）— 四类敏感数据的分类，以及设备标识、位置、通讯录在预装组件里的采集面
-- **酷安 [RooyCo《真问题还在》](https://www.coolapk.com/feed/74911090)** — `com.miui.dmregservice` 的存在与采集字段（Wi-Fi 列表、蓝牙、BSSID、路由器 MAC）、`operator_service_improve_plan`、采集频率
-- **[frauddb](https://github.com/acnekot/frauddb)**（acnekot，MIT）— `fraud_detection_data.db` 八张表结构与库路径、`tel_number_md5` 算法
-- **[hyperos-dm-report](https://github.com/acxun/hyperos-dm-report)**（作者 [acxun](https://github.com/acxun)，文档 CC BY 4.0）— 运营商 DM 组件的上报链路与加密方式、MiSight 的事件日志域名 `event-log.cnbj1.mi-fds.com`；本文只引用其结论，未复制原文
-- **[misight-viewer](https://github.com/Artriai/misight-viewer)**（作者 [Artriai](https://github.com/Artriai)）— MiSight 数据库字段与事件分类、设备诊断与用户行为记录的区分依据
+- **酷安 [RooyCo《真问题还在》](https://www.coolapk.com/feed/74911090)** — 运营商 DM 组件的存在与采集字段（Wi-Fi 列表、蓝牙、BSSID、路由器 MAC）、采集频率与开关项
+- **[frauddb](https://github.com/acnekot/frauddb)**（acnekot，MIT）— 行为库的表结构、库路径与号码摘要算法
+- **[hyperos-dm-report](https://github.com/acxun/hyperos-dm-report)**（作者 [acxun](https://github.com/acxun)，文档 CC BY 4.0）— 运营商 DM 组件的上报链路与加密方式、诊断组件的事件日志域名；本文只引用其结论，未复制原文
+- **[misight-viewer](https://github.com/Artriai/misight-viewer)**（作者 [Artriai](https://github.com/Artriai)）— 诊断组件的数据库字段与事件分类、设备诊断与用户行为记录的区分依据
 - **[KernelSU](https://github.com/tiann/KernelSU)**（GPL-3.0，作者 [tiann](https://github.com/tiann) 与贡献者）— 1.7.0 悬浮底栏的尺寸与配色、`DampedDragAnimation` 的弹簧与按压时序、`MainPagerState` 的翻页同步判据；仅对照参数重写，未复制源码
 - **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— `PagerNavigationSpringSpec` 与 `IosLiquidGlassNavigationBar` 示例，KernelSU 的浮动底栏即由该示例改写而来
 - **libxposed API**（Apache-2.0）、**LSPosed** — 模块入口与作用域接口
@@ -264,6 +254,8 @@ build.sh              一键构建
 - 「自定义规则」由使用者自行填写，其中方法级规则会直接改变目标进程内方法的返回值；模块不提供任何预置方法级规则，由此产生的应用异常或功能失效由使用者承担
 - 模块名称、包名、图标归作者所有，不得冒充官方版本
 - 与小米、中国联通等厂商无隶属或合作关系，商标归各自权利人；界面对 KernelSU、compose-miuix-ui 的参考仅为实现思路，不代表其作者认可或背书本项目
+- 分析结论来自对自己设备上已安装组件的公开行为观察（网络请求、日志、界面），不包含厂商私有文档、未公开源码或内部数据
+- 如权利人认为本项目某项描述或实现不当，可通过 Issues 或仓库主页的联系方式提出，我们会核实后调整或移除
 - 按「现状」提供，不提供任何明示或暗示担保
 
 完整九条条款见 [DISCLAIMER.txt](DISCLAIMER.txt)；文件中附有英文摘要，仅供阅读，与中文正文冲突时以中文为准。

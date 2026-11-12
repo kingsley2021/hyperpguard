@@ -221,7 +221,7 @@ public class MainActivity extends Activity {
     private AlertDialog shownDialog;
     private int appliedNight = -1;
     /** DISCLAIMER.txt 的版本号，变了就重新弹一次确认 */
-    private static final int DISCLAIMER_VER = 14;
+    private static final int DISCLAIMER_VER = 15;
     private int restoreScrollY;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private XposedService xposed;
@@ -1157,7 +1157,7 @@ public class MainActivity extends Activity {
         makeSwitchRow(global, "总开关", "关闭后本模块在所有进程不生效",
                 Config.K_MASTER, true);
         global.addView(divider());
-        makeSwitchRow(global, "路径特征拦截", "路径规则（/avl/upload 等）是否生效",
+        makeSwitchRow(global, "路径特征拦截", "按路径特征识别上报，是否生效",
                 Config.K_PATH, true);
         global.addView(divider());
         makeSwitchRow(global, "记录未拦截访问", "把没命中规则的域名写进日志，排查漏拦时临时打开",
@@ -2314,7 +2314,7 @@ public class MainActivity extends Activity {
         t1.setTextColor(TEXT);
 
         TextView t2 = new TextView(this);
-        t2.setText("读安全中心 fraud_detection_data.db 的写入计数，用来判断拦截是否生效");
+        t2.setText("读安全中心行为库的写入计数，用来判断拦截是否生效");
         t2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         t2.setTextColor(SUB);
         t2.setPadding(0, dp(2), 0, 0);
@@ -2382,7 +2382,7 @@ public class MainActivity extends Activity {
         java.io.File f = new java.io.File(dir, "fd.db");
         if (!f.exists() || f.length() == 0) {
             return "读不到行为库。\n\n需要 root 授权，且设备上存在 "
-                    + "securitycenter/fraud_detection_data.db。";
+                    + "securitycenter 下的行为库。";
         }
         SQLiteDatabase db = null;
         try {

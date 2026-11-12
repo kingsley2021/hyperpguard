@@ -41,47 +41,39 @@ The UI follows the system language: English on English devices, Chinese otherwis
 
 ## What is intercepted
 
-| Stage | Implementation |
+Four stages along the data path, plus a method-layer fallback for when obfuscated names change:
+
+| Stage | Approach |
 |---|---|
-| Network egress | Hooks `URL#openConnection`, `InetAddress#getByName`, `Socket` construction/`connect`, and custom okhttp `Dns` implementations; rules are "host suffix + optional path prefix" |
-| Privacy APIs | Installed app list, usage stats, device identifiers, SMS sending, XMSF broadcast relay |
-| Behaviour database | Blocks `SQLiteDatabase` writes to the eight tables `screenshot`, `screen_share`, `call_forwarding`, `airplane_mode`, `fraud_phone`, `voip_record`, `fraud_url`, `install_app` |
-| Silent screen recording | `MediaProjection#createVirtualDisplay` is never created |
-| Method layer | Resolves methods by signature and returns constants: SystemHelper upload/write, analytics usage aggregation |
-| XSOF | Provider / AIDL / database writes / scoring, four layers; third parties can no longer read screenshots, calls or screen-sharing records |
-| Ads (MSA) | Usage profile answers the "fewer ads" side; OneTrack `track*` / `adTrack*` return immediately |
+| Collection entry | Cuts at the source: installed-app lists, usage records, device identifiers, location and network-environment queries return empty |
+| Local storage | Blocks writes to the behaviour-record database, so nothing can be packaged for upload |
+| Cross-process interfaces | Blocks query and scoring interfaces so third-party apps cannot read those records |
+| Network egress | Hooks host resolution and connections inside the target process; rules are "host suffix + optional path prefix" |
+| Fallback | Resolves specific methods by signature and returns constants; when names change, the network layer still works |
 
-Network and method layers are independent: when obfuscated class names change, domain rules keep working, and when a domain changes, the method layer keeps working. The log shows which layer matched.
+The stages are independent: if one breaks on a component update, the others keep working, and the log shows which stage matched.
 
-## Covered components
+## Scope
 
-| Component | Package |
+Grouped by capability rather than listing target packages; each switch in the UI states exactly what it covers on your device.
+
+| Category | What is blocked |
 |---|---|
-| SystemHelper (carrier DM) | `com.mobiletools.systemhelper` |
-| System security | `com.miui.guardprovider` |
-| Security Center | `com.miui.securitycenter` |
-| Xiaomi Analytics | `com.miui.analytics` |
-| Package installer | `com.miui.packageinstaller` |
-| App store | `com.xiaomi.market` |
-| Mi services framework | `com.xiaomi.xmsf` |
-| Carrier services | `com.xiaomi.registration` |
-| Mobile DM | `com.miui.dmregservice` |
-| Diagnostics (MiSight) | `com.miui.misightservice` |
-| Xiaomi Trust Service | `com.xiaomi.trustservice` |
-| Translation | `com.xiaomi.aiasst.vision` |
-| Ads (MSA) | `com.miui.systemAdSolution` |
-| Network manager | `com.miui.wmsvc` |
-| AI content recognition | `com.xiaomi.aicr` |
-| Sogou IME | `com.sohu.inputmethod.sogou.xiaomi` |
-| Mi IME | `com.xiaomi.type` |
-| Baidu IME | `com.baidu.input_mi` |
-| iFlytek IME | `com.iflytek.inputmethod.miui` |
+| Telemetry | Upload events from analytics components, covered at both the method and the domain layer |
+| Device and location | Device identifiers, cell and Wi-Fi scans, location queries — per-app switches, off by default |
+| Behaviour records | Writes of screenshot / call / screen-share records, plus the query and scoring interfaces that expose them |
+| Diagnostics | Log upload for system diagnostics and remote after-sales diagnosis; triggering requires a user-initiated report or after-sales action, local records are not the same as uploaded ones |
+| Carrier side | Report domains and methods of the carrier device-management component; reporting is blocked, granted permissions are not revoked |
+| Input methods | Telemetry, clipboard capture, voice upload |
+| Ads and store | Ad usage profile, splash ads, config delivery and telemetry |
+
+Each app is one card in the UI: the switch in its top-right corner is its LSPosed scope switch, and per-item rules sit inside. Rules that can affect system features default to off, with the cost stated in the subtitle.
 
 ## Logs
 
 | Prefix | Meaning |
 |---|---|
-| `attach <package>` | Module injected into a process |
+| `attach <process>` | Module injected into a process |
 | `X(host)` / `X(host+path)` | A rule matched; path rules log `X(host+path)`, so grep with `grep -F 'X(host'` |
 | `X(strict)` | Whole-process blocking active |
 | `? <tag> <host>` | "Log unblocked hosts" record: request was not blocked |
@@ -94,17 +86,9 @@ Network and method layers are independent: when obfuscated class names change, d
 
 1. Enable the module and restart the target app
 2. Trigger its reporting (open Security Center, install an app)
-3. "View log" should show `attach <package>` and `X(...)` lines
+3. "View log" should show `attach <process>` and `X(...)` lines
 4. XSOF lines should all say `hooked`, with no `miss`
 5. If only `attach` appears, enable "log unblocked hosts" for a while and add the `?` hosts to the rules
-
-## UI
-
-| Main screen | Group cards |
-|---|---|
-| ![main](docs/images/ui-main.png) | ![cards](docs/images/ui-cards.png) |
-
-Dark mode follows the system; the night palette is pure black with `#1C1C1E` cards.
 
 ## Build
 
