@@ -231,6 +231,11 @@ final class I18n {
         EN.put("路径特征", "Path matching");
         EN.put("按路径特征识别上报，是否生效", "Whether path-based report detection applies");
         EN.put("记录未命中访问", "Log unmatched hosts");
+        EN.put("清空行为库", "Clear behaviour database");
+        EN.put("清空行为库？", "Clear behaviour database?");
+        EN.put("已清空，安全中心下次启动会重建空库", "Cleared; Security Center will rebuild an empty database on next start");
+        EN.put("会停止安全中心进程，并删除它的行为库文件（含 -wal / -shm）。历史记录不可恢复；安全中心下次启动会重建一个空库。本模块的开关与拦截不受影响。",
+                "Stops Security Center and deletes its behaviour database (including -wal / -shm). History cannot be recovered; an empty database is rebuilt on next start. Module switches and blocking are unaffected.");
         EN.put("把没命中规则的域名写进日志，排查漏拦时临时打开",
                 "Writes hosts that matched no rule to the log; enable temporarily when hunting for missed rules");
         EN.put("行为库状态", "Behaviour DB status");

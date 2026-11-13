@@ -2338,6 +2338,9 @@ public class MainActivity extends Activity {
         tv.setText("读取中…");
         box.addView(tv);
 
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+
         TextView refresh = new TextView(this);
         refresh.setText(T("刷新"));
         refresh.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
@@ -2346,7 +2349,20 @@ public class MainActivity extends Activity {
         refresh.setGravity(Gravity.CENTER);
         refresh.setBackground(pressBackground());
         refresh.setPadding(0, dp(10), 0, dp(10));
-        box.addView(refresh, new LinearLayout.LayoutParams(
+        actions.addView(refresh, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView clear = new TextView(this);
+        clear.setText(T("清空行为库"));
+        clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        clear.setTextColor(0xFFD1242F);
+        clear.setGravity(Gravity.CENTER);
+        clear.setBackground(pressBackground());
+        clear.setPadding(0, dp(10), 0, dp(10));
+        actions.addView(clear, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        box.addView(actions, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         ScrollView sv = new ScrollView(this);
@@ -2367,6 +2383,24 @@ public class MainActivity extends Activity {
             tv.setText("读取中…");
             load.run();
         });
+        clear.setOnClickListener(v -> showStyled(new AlertDialog.Builder(this)
+                .setTitle(T("清空行为库？"))
+                .setMessage("会停止安全中心进程，并删除它的行为库文件（含 -wal / -shm）。"
+                        + "历史记录不可恢复；安全中心下次启动会重建一个空库。"
+                        + "本模块的开关与拦截不受影响。")
+                .setPositiveButton(T("清空"), (d2, w2) -> new Thread(() -> {
+                    // 通配删掉主库与所有附属文件（-wal / -shm / -journal），
+                    // 前缀唯一，不会影响目录里的其它文件
+                    execShell("am force-stop com.miui.securitycenter; "
+                            + "rm -f " + FRAUD_DB + "*");
+                    ui.post(() -> {
+                        Toast.makeText(this, T("已清空，安全中心下次启动会重建空库"),
+                                Toast.LENGTH_LONG).show();
+                        tv.setText("读取中…");
+                        load.run();
+                    });
+                }, "hyperpguard-cleardb").start())
+                .setNegativeButton(T("取消"), null)));
         dialog.show();
         trackDialog(dialog);
         load.run();
@@ -2381,8 +2415,8 @@ public class MainActivity extends Activity {
                 + "chmod 644 " + dir + "/fd.db-wal 2>/dev/null; echo ok");
         java.io.File f = new java.io.File(dir, "fd.db");
         if (!f.exists() || f.length() == 0) {
-            return "读不到行为库。\n\n需要 root 授权，且设备上存在 "
-                    + "securitycenter 下的行为库。";
+            return "读不到行为库。\n\n需要 root 授权，且设备上存在 securitycenter 下的行为库；"
+                    + "刚清空过的会读不到，安全中心重新打开后会自动重建。";
         }
         SQLiteDatabase db = null;
         try {
