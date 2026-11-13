@@ -2338,8 +2338,11 @@ public class MainActivity extends Activity {
         tv.setText("读取中…");
         box.addView(tv);
 
+        /* 竖排：清空行为库在上（主操作），刷新在下；两个按钮都占满整行，
+         * 点击区域大，也不会出现横排时两段短文字被拉得很开的问题。 */
         LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setOrientation(LinearLayout.VERTICAL);
+        actions.setGravity(Gravity.CENTER);
 
         TextView refresh = new TextView(this);
         refresh.setText(T("刷新"));
@@ -2348,19 +2351,22 @@ public class MainActivity extends Activity {
         refresh.setTag("accent");
         refresh.setGravity(Gravity.CENTER);
         refresh.setBackground(pressBackground());
-        refresh.setPadding(0, dp(10), 0, dp(10));
-        actions.addView(refresh, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        refresh.setPadding(dp(24), dp(10), dp(24), dp(10));   // 按压范围只比文字大一圈
 
         TextView clear = new TextView(this);
         clear.setText(T("清空行为库"));
         clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         clear.setTextColor(ACCENT);
+        clear.setTag("accent");      // paintDialogText 只保留带这个标记的颜色
         clear.setGravity(Gravity.CENTER);
         clear.setBackground(pressBackground());
-        clear.setPadding(0, dp(10), 0, dp(10));
+        clear.setPadding(dp(24), dp(10), dp(24), dp(10));
+
+        // 按压高亮只在文字附近，铺满整行会让整条变色
         actions.addView(clear, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        actions.addView(refresh, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         box.addView(actions, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
