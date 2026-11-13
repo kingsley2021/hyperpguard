@@ -2687,6 +2687,27 @@ public class MainActivity extends Activity {
         }
     }
 
+    /** 一次 ps 取全部进程名（去掉 :remote 后缀），避免对每个包各起一次 su */
+    private java.util.Set<String> runningProcesses() {
+        java.util.Set<String> set = new java.util.HashSet<>();
+        String out = execShell("ps -A -o NAME 2>/dev/null");
+        if (out == null || out.trim().isEmpty()) out = execShell("ps -A 2>/dev/null");
+        if (out == null) return set;
+        for (String line : out.split("\n")) {
+            String n = line.trim();
+            if (n.isEmpty() || "NAME".equals(n)) continue;
+            int sp = n.lastIndexOf(' ');
+            if (sp >= 0) n = n.substring(sp + 1);
+            int c = n.indexOf(':');
+            set.add(c > 0 ? n.substring(0, c) : n);
+        }
+        return set;
+    }
+
+    private boolean isRunning(String pkg) {
+        return runningProcesses().contains(pkg);
+    }
+
     private void restartApp(final String pkg) {
         Toast.makeText(this, "正在重启 " + pkg + "（需 root）", Toast.LENGTH_SHORT).show();
         new Thread(new Runnable() {
@@ -2694,10 +2715,16 @@ public class MainActivity extends Activity {
             public void run() {
                 String msg;
                 try {
-                    Process p = Runtime.getRuntime().exec(new String[]{"su", "-c",
-                            "am force-stop " + pkg});
-                    int code = p.waitFor();
-                    msg = code == 0 ? (pkg + " 已重启") : (pkg + " 重启失败 code=" + code);
+                    if (!isRunning(pkg)) {
+                        /* 没在跑就不用重启：LSPosed 在进程启动时才注入，
+                         * 下次打开自然会读到新配置，force-stop 只会白丢它的后台状态。 */
+                        msg = pkg + " 未在运行，下次启动会加载新配置";
+                    } else {
+                        Process p = Runtime.getRuntime().exec(new String[]{"su", "-c",
+                                "am force-stop " + pkg});
+                        int code = p.waitFor();
+                        msg = code == 0 ? (pkg + " 已重启") : (pkg + " 重启失败 code=" + code);
+                    }
                 } catch (Throwable t) {
                     msg = "重启失败：" + t;
                 }
@@ -2725,10 +2752,32 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "作用域为空", Toast.LENGTH_SHORT).show();
             return;
         }
-        Toast.makeText(this, "正在重启 " + pkgs.size() + " 个应用（需 root）",
-                Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "正在检查哪些应用在运行（需 root）", Toast.LENGTH_SHORT).show();
+        final List<String> all = new ArrayList<>(pkgs);
+        new Thread(() -> {
+            /* 只重启真在运行的进程：没运行的下次启动本来就会重新注入，
+             * 逐个 force-stop 只是白等并让系统多做一次拉起。 */
+            final java.util.Set<String> running = runningProcesses();
+            final List<String> live = new ArrayList<>();
+            for (String p : all) {
+                if (running.contains(p)) live.add(p);
+            }
+            ui.post(() -> restartAllLive(all, live));
+        }, "hyperpguard-restartall").start();
+    }
+
+    /** 执行部分：live 为空时直接说明 */
+    private void restartAllLive(final List<String> all, final List<String> live) {
+        if (live.isEmpty()) {
+            Toast.makeText(this, "作用域内 " + all.size() + " 个应用都没在运行，无需重启",
+                    Toast.LENGTH_LONG).show();
+            return;
+        }
+        Toast.makeText(this, "正在重启 " + live.size() + " 个运行中的应用（" 
+                + (all.size() - live.size()) + " 个未运行，跳过）（需 root）",
+                Toast.LENGTH_LONG).show();
         final StringBuilder cmd = new StringBuilder();
-        for (String p : pkgs) cmd.append("am force-stop ").append(p).append("; ");
+        for (String p : live) cmd.append("am force-stop ").append(p).append("; ");
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -2736,7 +2785,7 @@ public class MainActivity extends Activity {
                 try {
                     Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd.toString()});
                     int code = p.waitFor();
-                    msg = "已重启 " + pkgs.size() + " 个应用" + (code == 0 ? "" : "（code=" + code + "）");
+                    msg = "已重启 " + live.size() + " 个应用" + (code == 0 ? "" : "（code=" + code + "）");
                 } catch (Throwable t) {
                     msg = "重启失败：" + t;
                 }
