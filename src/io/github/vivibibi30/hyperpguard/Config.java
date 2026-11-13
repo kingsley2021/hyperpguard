@@ -14,7 +14,7 @@ public final class Config {
 
     public static final String PKG = "io.github.vivibibi30.hyperpguard";
     public static final String PREFS = "pg";
-    public static final String VERSION = "1.8.7";
+    public static final String VERSION = "1.8.8";
 
     /* 全局 */
     public static final String K_MASTER = "master";
@@ -42,6 +42,8 @@ public final class Config {
     public static final String K_G_IME_MITYPE = "g_ime_mitype";
     public static final String K_G_IME_BAIDU = "g_ime_baidu";
     public static final String K_G_IME_IFLYTEK = "g_ime_iflytek";
+    public static final String K_G_IME_WETYPE = "g_ime_wetype";
+    public static final String K_G_IME_DOUBAO = "g_ime_doubao";
     public static final String K_G_SYSHELPER = "g_syshelper";
     public static final String K_G_GUARD = "g_guardprovider";
     public static final String K_G_TRUST = "g_trustservice";
@@ -171,6 +173,22 @@ public final class Config {
     /* 讯飞输入法小米版 */
     /** com.iflytek.statssdk 统计 SDK */
     public static final String K_IFLYTEK_STATS = "block_iflytek_stats";
+
+    /* 微信输入法（com.tencent.wetype） */
+    /** 灯塔埋点 h.trace.qq.com 与配置/灰度下发（rdelivery / rconfig / release） */
+    public static final String K_WETYPE_TRACK = "block_wetype_track";
+    /** Bugly 崩溃上报与 rmonitor 性能监控，含本地攒表后批量上传 */
+    public static final String K_WETYPE_CRASH = "block_wetype_crash";
+    /** 云输入与词库/皮肤分发，默认关：关闭后云联想与词库同步不可用 */
+    public static final String K_WETYPE_CLOUD = "block_wetype_cloud";
+
+    /* 豆包输入法（com.bytedance.android.doubaoime） */
+    /** AppLog 埋点（mon / log.zijieapi.com、i.snssdk.com） */
+    public static final String K_DOUBAO_TRACK = "block_doubao_track";
+    /** 配置、灰度与校验下发，默认关：关闭后配置下发可能失败 */
+    public static final String K_DOUBAO_CONFIG = "block_doubao_config";
+    /** 云输入服务，默认关：关闭后云联想不可用 */
+    public static final String K_DOUBAO_CLOUD = "block_doubao_cloud";
 
     /**
      * 各开关的默认值：全仓唯一一份。
@@ -308,6 +326,16 @@ public final class Config {
 
         // 讯飞输入法小米版
         DEFAULTS.put(K_IFLYTEK_STATS, true);
+        // 微信输入法：只有纯上报项默认开，云输入与词库默认关
+        DEFAULTS.put(K_G_IME_WETYPE, true);
+        DEFAULTS.put(K_WETYPE_TRACK, true);
+        DEFAULTS.put(K_WETYPE_CRASH, true);
+        DEFAULTS.put(K_WETYPE_CLOUD, false);
+        // 豆包输入法：同上，配置下发与云输入默认关
+        DEFAULTS.put(K_G_IME_DOUBAO, true);
+        DEFAULTS.put(K_DOUBAO_TRACK, true);
+        DEFAULTS.put(K_DOUBAO_CONFIG, false);
+        DEFAULTS.put(K_DOUBAO_CLOUD, false);
     }
 
     /** 某个键的默认值；未登记的键按 false 处理，并记一条日志便于自查 */

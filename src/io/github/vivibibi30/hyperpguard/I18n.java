@@ -302,6 +302,24 @@ final class I18n {
                 "Every outbound request in this process is blocked; host changes do not matter");
         EN.put("发现新版本 v", "New version v");
         EN.put("fxltsbl.com；App 清单 / SIM 标识", "fxltsbl.com — installed apps / SIM identifiers");
+        EN.put("微信输入法", "WeChat IME");
+        EN.put("豆包输入法", "Doubao IME");
+        EN.put("灯塔 h.trace.qq.com 与配置/灰度下发；后果：只停埋点与下发，输入与候选不受影响",
+                "Beacon h.trace.qq.com plus config/rollout delivery; effect: telemetry and rollout only, typing and candidates unaffected");
+        EN.put("崩溃与性能上报", "Crash and performance reporting");
+        EN.put("Bugly 崩溃上报与 rmonitor 性能监控；后果：只停这两类数据，应用照常运行",
+                "Bugly crash reports and rmonitor performance data; effect: only these two data types stop, the app keeps working");
+        EN.put("云输入与词库", "Cloud input and dictionaries");
+        EN.put("微信云与 CDN；默认关：开启后云联想、词库同步、皮肤下载会不可用",
+                "WeChat cloud and CDN; off by default: enabling it breaks cloud suggestions, dictionary sync and skin downloads");
+        EN.put("AppLog 埋点域名；后果：只停埋点，输入与候选不受影响",
+                "AppLog telemetry hosts; effect: telemetry only, typing and candidates unaffected");
+        EN.put("配置与校验", "Config and verification");
+        EN.put("配置、灰度与校验域名；默认关：开启后配置下发可能失败",
+                "Config, rollout and verification hosts; off by default: enabling it may break config delivery");
+        EN.put("云输入服务", "Cloud input service");
+        EN.put("输入法服务端；默认关：开启后云联想不可用",
+                "IME backend; off by default: enabling it disables cloud suggestions");
         EN.put("搜狗输入法", "Sogou IME");
         EN.put("统计上报", "Usage stats");
         EN.put("kpi2 与 instantpb 两个埋点域名；后果：只停统计，输入、候选与词库不受影响",

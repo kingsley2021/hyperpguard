@@ -15,6 +15,8 @@
 | 小米输入法 | OneTrack 方法层 + 同上域名 | 内嵌 OneTrack；击键统计（`duration_s` / `key_cnt` / `action_list`）据第三方静态分析经 `OneTrack#track` 发出，由 OneTrack 方法层覆盖（本仓库未独立复现该调用链） |
 | 百度输入法 | `com.baidu.stats.*`、`com.baidu.speech.utils.analysis.*` 的 void 方法 | 百度统计 SDK 的记录与上传入口，以及语音识别的 ASR 采集上传；只停埋点，语音输入本身不受影响 |
 | 讯飞输入法 | `com.iflytek.statssdk.*` 的 void 方法 | 讯飞统计 SDK 的记录与上传入口 |
+| 微信输入法 | `h.trace.qq.com`、`*.bugly.*`、`*.rmonitor.qq.com`、`rdelivery/rconfig/release` | 灯塔埋点、Bugly 崩溃与 rmonitor 性能上报、配置与灰度下发；云输入与词库（`wetype.wxqcloud` / CDN）默认不拦 |
+| 豆包输入法 | `mon`/`log.zijieapi.com`、`i.snssdk.com`、AppLog | 字节 AppLog 埋点与监控；配置校验（`rc`/`vcs`/`scc`/`rmc`）与云输入（`ime.doubao.com`）默认不拦 |
 | SystemHelper | `dm.wo.com.cn` | 唯一已知上报地址 `http://dm.wo.com.cn:18080/register`（明文 HTTP、应用层加密封装），硬编码在 `c.d.a.b.d` 常量中；组件为运营商设备管理 / 网络优化用途，非恶意软件 |
 | guardprovider | `flash.sec.miui.com` | 应用特征上传接口 |
 | guardprovider | `detection-aigc.engine.miui.com` | AI 通话预警云检测 |

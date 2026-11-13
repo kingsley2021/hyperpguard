@@ -526,6 +526,61 @@ public class HookEntry extends XposedModule {
             }
             return;
         }
+        if ("com.tencent.wetype".equals(pkg)) {
+            /* 微信输入法。类可能被 LSPatch 之类的注入器重新装载，
+             * 方法层全部走 stage() 兜异常，失败只记 miss，不影响域名层。 */
+            if (!Config.on(Config.K_G_IME_WETYPE)) return;
+            Logs.i("attach wetype ime");
+            List<NetGuard.Rule> r = new ArrayList<>();
+            if (Config.on(Config.K_WETYPE_TRACK)) {
+                r.add(new NetGuard.Rule("h.trace.qq.com"));
+                r.add(new NetGuard.Rule("rdelivery.qq.com"));
+                r.add(new NetGuard.Rule("rconfig.qq.com"));
+                r.add(new NetGuard.Rule("r.release.qq.com"));
+                r.add(new NetGuard.Rule("dev.release.qq.com"));
+                r.add(new NetGuard.Rule("rqd.uu.qq.com"));
+            }
+            if (Config.on(Config.K_WETYPE_CRASH)) {
+                r.add(new NetGuard.Rule("bugly.qq.com"));
+                r.add(new NetGuard.Rule("bugly.tencent.com"));
+                r.add(new NetGuard.Rule("bugly.qcloud.com"));
+                r.add(new NetGuard.Rule("rmonitor.qq.com"));
+            }
+            if (Config.on(Config.K_WETYPE_CLOUD)) {
+                r.add(new NetGuard.Rule("wetype.wxqcloud.qq.com"));
+                r.add(new NetGuard.Rule("z.weixin.qq.com"));
+                r.add(new NetGuard.Rule("myqcloud.com"));
+            }
+            netSafe(cl, "wetype", r, false);
+            return;
+        }
+
+        if ("com.bytedance.android.doubaoime".equals(pkg)) {
+            if (!Config.on(Config.K_G_IME_DOUBAO)) return;
+            Logs.i("attach doubao ime");
+            List<NetGuard.Rule> r = new ArrayList<>();
+            if (Config.on(Config.K_DOUBAO_TRACK)) {
+                r.add(new NetGuard.Rule("mon.zijieapi.com"));
+                r.add(new NetGuard.Rule("log.zijieapi.com"));
+                r.add(new NetGuard.Rule("mon.snssdk.com"));
+                r.add(new NetGuard.Rule("i.snssdk.com"));
+            }
+            if (Config.on(Config.K_DOUBAO_CONFIG)) {
+                r.add(new NetGuard.Rule("rc.snssdk.com"));
+                r.add(new NetGuard.Rule("vcs.zijieapi.com"));
+                r.add(new NetGuard.Rule("scc.bytedance.com"));
+                r.add(new NetGuard.Rule("rmc.bytedance.com"));
+                r.add(new NetGuard.Rule("verify.zijieapi.com"));
+                r.add(new NetGuard.Rule("verify.snssdk.com"));
+            }
+            if (Config.on(Config.K_DOUBAO_CLOUD)) {
+                r.add(new NetGuard.Rule("ime.doubao.com"));
+                r.add(new NetGuard.Rule("shurufa.doubao.com"));
+            }
+            netSafe(cl, "doubao", r, false);
+            return;
+        }
+
         if ("com.xiaomi.registration".equals(pkg)) {
             if (!Config.on(Config.K_G_REGISTRATION)) return;
             Logs.i("attach registration");

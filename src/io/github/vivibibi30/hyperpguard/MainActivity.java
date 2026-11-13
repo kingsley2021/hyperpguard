@@ -185,6 +185,16 @@ public class MainActivity extends Activity {
             new Group(T("讯飞输入法"), "com.iflytek.inputmethod.miui", Config.K_G_IME_IFLYTEK, new Item[]{
                     new Item(T("统计上报"), T("com.iflytek.statssdk 记录与上传入口；只影响统计"), Config.K_IFLYTEK_STATS),
             }),
+            new Group(T("微信输入法"), "com.tencent.wetype", Config.K_G_IME_WETYPE, new Item[]{
+                    new Item(T("统计埋点"), T("灯塔 h.trace.qq.com 与配置/灰度下发；后果：只停埋点与下发，输入与候选不受影响"), Config.K_WETYPE_TRACK),
+                    new Item(T("崩溃与性能上报"), T("Bugly 崩溃上报与 rmonitor 性能监控；后果：只停这两类数据，应用照常运行"), Config.K_WETYPE_CRASH),
+                    new Item(T("云输入与词库"), T("微信云与 CDN；默认关：开启后云联想、词库同步、皮肤下载会不可用"), Config.K_WETYPE_CLOUD),
+            }),
+            new Group(T("豆包输入法"), "com.bytedance.android.doubaoime", Config.K_G_IME_DOUBAO, new Item[]{
+                    new Item(T("统计埋点"), T("AppLog 埋点域名；后果：只停埋点，输入与候选不受影响"), Config.K_DOUBAO_TRACK),
+                    new Item(T("配置与校验"), T("配置、灰度与校验域名；默认关：开启后配置下发可能失败"), Config.K_DOUBAO_CONFIG),
+                    new Item(T("云输入服务"), T("输入法服务端；默认关：开启后云联想不可用"), Config.K_DOUBAO_CLOUD),
+            }),
             new Group(T("运营商服务"), "com.xiaomi.registration", Config.K_G_REGISTRATION, new Item[]{
                     new Item(T("设备注册（zzhc）"), T("IMEI/IMSI/ICCID；关闭后 VoLTE / 运营商功能可能异常"), Config.K_REG_ZZHC),
                     new Item(T("明文 CTEI 上报"), T("http://typdm.tydevice.com，IMEI / MAC / BSSID 明文 GET"), Config.K_REG_TYPDM),
@@ -1232,8 +1242,11 @@ public class MainActivity extends Activity {
                 children.add(sw);
                 rows.add(row);
                 c.addView(row);
+                /* 组名与组说明也进索引：不然搜「输入法」这种只出现在分组标题里的词
+                 * 会一条都命中不了（搜「输入」能中，是因为个别描述里带这两个字）。 */
                 searchHits.add(new SearchHit(c, row, dv,
-                        (it.name + " " + (it.desc == null ? "" : it.desc))
+                        (g.title + " " + (g.note == null ? "" : g.note) + " "
+                                + it.name + " " + (it.desc == null ? "" : it.desc))
                                 .toLowerCase(java.util.Locale.ROOT)));
             }
             root.addView(c);
