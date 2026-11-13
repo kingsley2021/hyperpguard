@@ -2355,7 +2355,7 @@ public class MainActivity extends Activity {
         TextView clear = new TextView(this);
         clear.setText(T("清空行为库"));
         clear.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        clear.setTextColor(0xFFD1242F);
+        clear.setTextColor(ACCENT);
         clear.setGravity(Gravity.CENTER);
         clear.setBackground(pressBackground());
         clear.setPadding(0, dp(10), 0, dp(10));
