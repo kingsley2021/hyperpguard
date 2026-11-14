@@ -8,7 +8,7 @@
 ![android](https://img.shields.io/badge/Android-10--16-green)
 ![status](https://img.shields.io/badge/status-按需维护-2da44e?style=flat-square)
 
-在采集入口、本地存储、对外接口、网络出口四层拦截 HyperOS 预装组件的隐私上报
+在采集入口、本地存储、对外接口、网络出口四个层面，按应用给行为加开关
 
 </div>
 
@@ -26,7 +26,7 @@
 
 ## 当前支持的版本
 
-- Android 10 – Android 16 的 HyperOS
+- Android 10 – Android 16（对应平台）
 - LSPosed 2.2.x（libxposed API 100+）
 - Root：KernelSU / Magisk / APatch（「重启」「查看日志」需要）
 
@@ -157,12 +157,12 @@ build.sh              一键构建
 ## 适配边界
 
 - 开关保持默认值时不会写进 `hyperpguard_conf`，`settings get` 里缺某个 key 不代表它关闭，以界面状态与日志为准
-- 域名名单可能漏项：地址可由配置下发；小米统计为整进程断网，SystemHelper 默认只拦上报域名，其余组件依赖隐私 API 层与方法层
+- 域名名单可能漏项：地址可由配置下发；厂商统计域走整进程断网，SystemHelper 默认只拦上报域名，其余组件依赖隐私 API 层与方法层
 - 方法层类名随组件版本变化，日志里 `hook miss` 属正常，网络层与隐私 API 层不受影响
 - 使用 native 网络栈（Cronet 等）的请求不受 Java 层 hook 影响
 - `IMrm` 属 HAL 层，仅从 `ServiceManager` 侧断开
 - 部分代发链路属于跨进程交接，只拦模块自身作用域覆盖不到的那一段
-- 拦截范围限于已识别的通道，不代表覆盖 HyperOS 全部联网行为
+- 拦截范围限于已识别的通道，不代表覆盖该系统全部联网行为
 - 运营商侧组件的权限在新机激活（OOBE）阶段授予，激活时的权限弹窗值得逐项看清；本模块只拦上报，不回收已授予的权限。对授权有疑虑时，可在设置里找「隐私与安全 / 反馈 / 用户体验计划」这类入口，或备份后重置手机重走开机引导
 - 识别结论以静态分析与真机行为对照为准，单看一段静态代码不足以定性
 - 安全组件里的反诈逻辑用于通话场景，运营商侧组件承担的是设备管理侧的上报，两者不是同一条链路
@@ -251,6 +251,6 @@ GPL-3.0，见 [LICENSE](LICENSE)。
 
 ## English
 
-HyperPGuard is an LSPosed module for HyperOS that blocks telemetry from preinstalled system components — carrier telemetry, cloud app scanning, installer stats, ads, XSOF behaviour queries and silent screen recording — at four stages: data source, local storage, IPC interfaces and network egress. Per-app switches, feature-affecting rules default off. Requires Android 10+, LSPosed 2.2.x and root for restart/log features.
+HyperPGuard is an LSPosed module that puts per-app switches on four kinds of app behaviour — data source queries, local storage writes, IPC interfaces and network egress. Rules are user-defined (domain suffix + path, class#method); switches that could affect app features default to off. It runs entirely on the device, has no network access of its own, and collects nothing. Requires Android 10+, LSPosed 2.2.x and root for the restart/log features.
 
 The settings UI follows the system language: English when the device language is English, Chinese otherwise. Logs and diagnostic text remain Chinese. Personal use only. See [DISCLAIMER.txt](DISCLAIMER.txt). GPL-3.0.
