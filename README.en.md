@@ -7,7 +7,7 @@
 
 [简体中文](README.md) · English
 
-An LSPosed module that blocks telemetry from preinstalled HyperOS components at four stages: where data is collected, where it is stored locally, the inter-process interfaces, and the network egress.
+An LSPosed module that puts per-app switches on four kinds of app behaviour — data source queries, local storage writes, IPC interfaces and network egress. Rules are user-defined (domain suffix + path, class#method); switches that could affect app features default to off. It runs entirely on-device and has no network access of its own.
 
 This project is based on static analysis and runtime observation of the components shipped on the author's own device. Components differ between models and ROM versions; treat everything here as observed behaviour, not as a universal description.
 
