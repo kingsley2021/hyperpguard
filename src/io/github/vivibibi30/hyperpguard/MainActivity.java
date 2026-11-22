@@ -1389,21 +1389,19 @@ public class MainActivity extends Activity {
         root.addView(pageTitle("设置"));
 
         LinearLayout actions = card();
-        addHideIconRow(actions);
-        actions.addView(divider());
         addListRow(actions, "查看日志", "读取本模块在 logcat 里的输出", () -> loadLog(false));
         actions.addView(divider());
         addListRow(actions, "分享日志", "把日志文本导出分享", () -> loadLog(true));
         actions.addView(divider());
         addCleanLogRow(actions);
-        root.addView(actions);
-
-        LinearLayout cfg = card();
+        actions.addView(divider());
+        addHideIconRow(actions);
+        actions.addView(divider());
         ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
         cfgRow.setClickable(true);
         cfgRow.setOnClickListener(v -> showConfigIO());
-        cfg.addView(cfgRow);
-        root.addView(cfg);
+        actions.addView(cfgRow);
+        root.addView(actions);
 
         root.addView(sectionRow("关于", "版本与反馈"));
         LinearLayout about = card();
@@ -2620,7 +2618,7 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(dp(56));
-        row.setPadding(0, dp(9), 0, dp(9));
+        row.setPadding(dp(4), dp(9), dp(4), dp(9));
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
