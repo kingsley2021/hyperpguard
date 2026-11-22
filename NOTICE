@@ -18,18 +18,12 @@ LSPosed 框架不随本项目分发；模块运行依赖使用者自行安装的
 免责声明与使用边界见 DISCLAIMER.txt。
 第三方组件的版权与商标归各自权利人所有。
 
-界面动效与着色器：
+界面动效参数：
 
 - compose-miuix-ui / miuix（Apache-2.0）
-  底栏液态玻璃折射 shader：assets/lens_refraction.agsl 改编自其 IosLiquidGlassNavigationBar
-  示例中的 lens 实现（compose-miuix-ui/miuix，example/shared/.../component/liquid/）；
-  该示例注明改编自 Kyant0/AndroidLiquidGlass（Apache-2.0）
+  底栏的尺寸、动效与页面切换弹簧参数参考其公开示例，按参数重写，未复制源码
   https://github.com/compose-miuix-ui/miuix
-  https://github.com/Kyant0/AndroidLiquidGlass
   Apache License 2.0 全文见 LICENSES/Apache-2.0.txt
-
-- 页面切换弹簧参数参考 miuix 的 PagerNavigationSpringSpec（utils/PagerGestureUtils.kt），
-  按参数重写，未复制源码
 
 第三方文档（仅引用结论，未复制原文）：
 

@@ -143,4 +143,4 @@ GPL-3.0, see [LICENSE](LICENSE). Usage terms, legal notes and risk statements ar
 
 ## Credits
 
-HyperCeiler, XSOF Privacy, HyperOS4-XSOF-Analysis, OSAKOo, RooyCo, frauddb, misight-viewer, compose-miuix-ui/miuix, libxposed, LSPosed and others. The floating bottom bar's liquid-glass refraction shader (assets/lens_refraction.agsl) is adapted from the compose-miuix-ui / miuix example (Apache-2.0), which in turn credits Kyant0/AndroidLiquidGlass (Apache-2.0); see [NOTICE](NOTICE). The full list with links is in the [Chinese README](README.md#参考来源).
+HyperCeiler, XSOF Privacy, HyperOS4-XSOF-Analysis, OSAKOo, RooyCo, frauddb, misight-viewer, compose-miuix-ui/miuix, libxposed, LSPosed and others. The floating bottom bar's dimensions and motion parameters reference the compose-miuix-ui / miuix example (Apache-2.0), re-implemented from parameters; see [NOTICE](NOTICE). The full list with links is in the [Chinese README](README.md#参考来源).

@@ -225,7 +225,7 @@ build.sh              一键构建
 - **[frauddb](https://github.com/acnekot/frauddb)**（acnekot，MIT）— 行为库的表结构、库路径与号码摘要算法
 - **[hyperos-dm-report](https://github.com/acxun/hyperos-dm-report)**（作者 [acxun](https://github.com/acxun)，文档 CC BY 4.0）— 运营商 DM 组件的上报链路与加密方式、诊断组件的事件日志域名；本文只引用其结论，未复制原文
 - **[misight-viewer](https://github.com/Artriai/misight-viewer)**（作者 [Artriai](https://github.com/Artriai)）— 诊断组件的数据库字段与事件分类、设备诊断与用户行为记录的区分依据
-- **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— 底栏的液态玻璃折射（`assets/lens_refraction.agsl` 改编自其 `IosLiquidGlassNavigationBar` 示例中的 lens 实现，该示例注明改编自 [Kyant0/AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass)）与页面切换弹簧参数；按 Apache-2.0 保留声明
+- **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— 底栏的尺寸、动效与页面切换弹簧参数参考其公开示例，按参数重写；按 Apache-2.0 保留声明
 - **libxposed API**（Apache-2.0）、**LSPosed** — 模块入口与作用域接口
 
 第三方组件：`libxposed API 102`（Apache-2.0，编译期依赖），详见 [NOTICE](NOTICE)。
