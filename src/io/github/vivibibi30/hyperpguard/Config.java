@@ -14,7 +14,7 @@ public final class Config {
 
     public static final String PKG = "io.github.vivibibi30.hyperpguard";
     public static final String PREFS = "pg";
-    public static final String VERSION = "2.0.0";
+    public static final String VERSION = "2.0.1";
 
     /* 全局 */
     public static final String K_MASTER = "master";
