@@ -245,6 +245,8 @@ build.sh              一键构建
 - Issue #22：定位到小米输入法击键统计经 OneTrack#track 发出，据此更正了文档里「未覆盖」的说法
 - Issue #28：给出 MiSight 触发场景与数据流向、拦截计数、导入导出、自检用 `getRunningTargets` 的完整清单
 
+其他参考：KernelSU（GPL-3.0）与 compose-miuix-ui / miuix（Apache-2.0）的公开实现，界面动效参数按公开代码对照重写；许可与来源见 [NOTICE](NOTICE)。
+
 ## 免责声明
 
 - 本模块仅用于在**本人拥有完全控制权**的 Android 设备上限制预装组件的上报行为，不提供任何入侵、破解他人系统或获取他人数据的能力
