@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
         GradientDrawable glass = new GradientDrawable();
         // 半透明底 + 下层的模糊位图 → 视觉上是液态玻璃；不透明会盖掉模糊
         // surfaceContainer.copy(0.4f)：40% 不透明，剩下的交给下层的模糊位图
-        glass.setColor(nightMode ? 0x38211F26 : 0x38F3EDF7);
+        glass.setColor(nightMode ? 0x1F211F26 : 0x1FF3EDF7);
         glass.setCornerRadius(dp(32));       // CircleShape 等价：64dp 高的一半
         barShell.setBackground(glass);
         barShell.setPadding(dp(4), dp(4), dp(4), dp(4));
@@ -1742,8 +1742,12 @@ public class MainActivity extends Activity {
                         + (barCellWidth() - pillWidth()) / 2f);
                 left = Math.max(0, Math.min(left, Math.max(0, scaled.getWidth() - 1)));
                 int pw = Math.max(1, Math.min(pillWidth(), scaled.getWidth() - left));
+                // 从胶囊实际所在的 y（底栏内边距 4dp）开始裁，纵向也只取胶囊高度
+                int top = Math.min(dp(4), Math.max(0, scaled.getHeight() - 1));
+                int ph = tabPill.getHeight() > 0 ? tabPill.getHeight() : dp(56);
+                ph = Math.max(1, Math.min(ph, scaled.getHeight() - top));
                 android.graphics.Bitmap slice = android.graphics.Bitmap.createBitmap(
-                        scaled, left, 0, pw, Math.max(1, scaled.getHeight()));
+                        scaled, left, top, pw, ph);
                 tabPill.setBackdrop(slice);
                 tabPill.setSrcOffsetX(0f);
             }
@@ -1758,36 +1762,10 @@ public class MainActivity extends Activity {
                 android.graphics.RenderEffect sat =
                         android.graphics.RenderEffect.createColorFilterEffect(
                                 new android.graphics.ColorMatrixColorFilter(cm), null);
-                /* miuix 的底栏外壳是 blur → lens：整条玻璃本身也做 24dp 折射，
-                 * 只做模糊会像一块磨砂白板，看不出液态玻璃。 */
-                android.graphics.RenderEffect chain =
-                        android.graphics.RenderEffect.createChainEffect(sat, blur);
-                try {
-                    if (shellLens == null) {
-                        String src = GlassPill.lensSource(this);
-                        if (!src.isEmpty()) {
-                            shellLens = new android.graphics.RuntimeShader(src);
-                        }
-                    }
-                    if (shellLens != null) {
-                        float d = getResources().getDisplayMetrics().density;
-                        float pad = 24f * d;
-                        float rr = dp(32);
-                        shellLens.setFloatUniform("size", new float[]{w, h});
-                        shellLens.setFloatUniform("offset", new float[]{-pad, -pad});
-                        shellLens.setFloatUniform("cornerRadii", new float[]{rr, rr, rr, rr});
-                        shellLens.setFloatUniform("refractionHeight", pad);
-                        shellLens.setFloatUniform("refractionAmount", -pad);
-                        shellLens.setFloatUniform("depthEffect", 1f);
-                        shellLens.setFloatUniform("chromaticAberration", 0.5f);
-                        chain = android.graphics.RenderEffect.createChainEffect(chain,
-                                android.graphics.RenderEffect.createRuntimeShaderEffect(
-                                        shellLens, "content"));
-                    }
-                } catch (Throwable t) {
-                    Logs.i("shell lens unavailable: " + t);
-                }
-                glassBackdrop.setRenderEffect(chain);
+                // 外壳只做饱和度 + 模糊：在 ImageView 上串 RuntimeShaderEffect 会输出空白
+                glassBackdrop.setRenderEffect(
+                        android.graphics.RenderEffect.createChainEffect(sat, blur));
+
             }
         } catch (Throwable ignored) {
         }
@@ -3739,6 +3717,12 @@ public class MainActivity extends Activity {
             if (w <= 0 || h <= 0) return;
             float r = h / 2f;
 
+            // 白底上的玻璃球靠阴影立起来，否则白色叠白色等于消失
+            float dy = Math.max(1f, 2f * getResources().getDisplayMetrics().density);
+            fill.setShader(null);
+            fill.setColor(0x26000000);
+            canvas.drawRoundRect(0f, dy, w, h + dy, r, r, fill);
+
             if (shader != null) {
                 // 位图是整条底栏的模糊结果，偏移到胶囊这一格
                 matrix.setTranslate(-srcOffsetX, 0f);
@@ -3804,7 +3788,7 @@ public class MainActivity extends Activity {
 
             fill.setShader(null);
             // 源码 onDrawSurface：浅色 Black.copy(0.1f)，深色 White.copy(0.1f)
-            fill.setColor(0x14FFFFFF);   // 白色玻璃：靠描边与阴影区分，而不是靠灰色
+            fill.setColor(0x1AFFFFFF);   // 白色玻璃：白底上靠阴影与描边区分
             canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
 
             float stroke = Math.max(1f, getResources().getDisplayMetrics().density);
