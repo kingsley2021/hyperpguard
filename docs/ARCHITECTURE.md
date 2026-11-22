@@ -31,8 +31,34 @@ AnalyticsHooks.java 统计方法层
 Hooks.java         公共 hook 工具
 PgSwitch.java      设置页开关（自绘，点击可由外部接管）
 Logs.java          统一日志标签 HyperPGuard
-MainActivity.java  设置界面（程序化构建，无 layout 资源）
+MainActivity.java  设置界面（程序化构建，无 layout 资源）：生命周期、三页组装、作用域与弹窗
+
+界面层（依赖单向，均不反向依赖 MainActivity）：
+Theme.java         主题色板（bg/card/line/text/sub/accent/night），改配色只动这里
+UiKit.java         无状态组件工厂：card/divider/line/sectionRow/sectionTitle/
+                   infoRow/linkRow/singleButton/addListRow/pressBackground
+BottomBar.java     底栏：Stage 页面容器 + GlassPill 玻璃球 + GlossView 高光 + TabIcon
+ConfigIO.java      配置导入导出（读 UiKit 取色，不持 Activity 字段）
+LogTools.java      日志纯函数：拦截统计、分段、域名用途注解（可单测）
+Misight.java       MiSight 事件库只读快照（su 复制 + 只读查询）
+MisightActivity.java 事件库浏览页
+HotReload.java     开关热重载（libxposed API 102）
 ```
+
+界面代码的分层约定（2026-11-22）：
+
+```
+MainActivity（组装 + 状态）
+  → 页面构建方法（buildGeneralPage / buildComponentsPage / buildSettingsPage）
+  → UiKit（只依赖 Theme + Context）
+  → Theme（纯数据）
+```
+
+- 页面构建方法暂时留在 `MainActivity`：它们要读写 `groupSwitches`、`scopeHints`、`missingGroups` 等
+  页面状态，搬到独立类会让每个字段变成 `host.xxx`，可读性反而下降。**除非状态先抽成对象，否则不拆页面。**
+- 新增界面元素：先看 `UiKit` 有没有现成的（card/row/section/button），没有再在 `UiKit` 加方法，
+  不要把构建代码写回 `MainActivity`。
+- 改底栏绘制只动 `BottomBar.java`；改配色只动 `Theme`；改日志解析只动 `LogTools`。
 
 ## 三、新增一个组件分组
 

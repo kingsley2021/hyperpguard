@@ -252,6 +252,7 @@ public class MainActivity extends Activity {
     private final Runnable hotReloadTask = this::flushHotReload;
 
     @Override
+    // ===== 生命周期与主题 =====
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         applyPalette(getResources().getConfiguration());
@@ -885,6 +886,7 @@ public class MainActivity extends Activity {
     }
 
     /** 首页：总开关、路径特征、诊断、规则、日志、批量操作 */
+    // ===== 页面：主页 =====
     private LinearLayout buildGeneralPage() {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("HyperPGuard"));
@@ -915,6 +917,7 @@ public class MainActivity extends Activity {
     }
 
     /** 组件拦截：批次操作 + 十九个组件分组 */
+    // ===== 页面：组件拦截 =====
     private LinearLayout buildComponentsPage() {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("组件拦截"));
@@ -1097,6 +1100,7 @@ public class MainActivity extends Activity {
     }
 
     /** 关于：仓库、模块页、反馈、版本、更新与免责声明 */
+    // ===== 页面：设置 =====
     private LinearLayout buildSettingsPage() {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("设置"));
@@ -1331,6 +1335,7 @@ public class MainActivity extends Activity {
     }
 
     /** 一次性请求全部作用域 */
+    // ===== 作用域：批量与单组 =====
     private void requestAll() {
         if (xposed == null) {
             runWhenBound(this::requestAll);
@@ -1438,6 +1443,7 @@ public class MainActivity extends Activity {
      * 液态玻璃背景：把底栏背后那一块页面画到位图，模糊后作为底栏背景。
      * 只绘制页面容器，不会把底栏自己拍进去。
      */
+    // ===== 底栏玻璃与刷新 =====
     private void updateGlassBackdrop() {
         if (glassBackdrop == null || stage == null) return;
         int w = glassBackdrop.getWidth();
@@ -1539,6 +1545,7 @@ public class MainActivity extends Activity {
      * 从 LSPosed 读真实作用域，刷新所有组开关与配置。
      * 这是「开关状态跟着框架走」的唯一入口：onServiceBind / onResume 都调它。
      */
+    // ===== 作用域：与服务同步 =====
     private void syncFromService() {
         java.util.List<String> scope = safeScope();
         for (Group g : GROUPS) {
@@ -1559,6 +1566,7 @@ public class MainActivity extends Activity {
     }
 
     /** 子项被打开时，如果该应用还没进作用域，顺手请求加入（不再靠置灰拦人） */
+    // ===== 作用域：加入请求 =====
     private void ensureInScope(final Group g) {
         if (xposed == null) {
             runWhenBound(() -> ensureInScope(g));
@@ -2328,6 +2336,7 @@ public class MainActivity extends Activity {
     /** 框架连接、真实作用域、开关数量、已注入进程，用来判断「为什么没拦住」 */
     private boolean diagRetried;
 
+    // ===== 自检 =====
     private void showDiagnostics() {
         if (xposed == null && !diagRetried) {
             diagRetried = true;
@@ -2634,6 +2643,7 @@ public class MainActivity extends Activity {
 
     /* ---------------- 日志 ---------------- */
 
+    // ===== 日志：读取与展示 =====
     private void loadLog(final boolean share) {
         Toast.makeText(this, "正在读取日志，约需数秒（需 root）", Toast.LENGTH_LONG).show();
         new Thread(new Runnable() {
