@@ -471,7 +471,7 @@ public class HookEntry extends XposedModule {
                 stage("msaUsage", () -> new MsaHooks(this).installUsage(cl));
             }
             if (Config.on(Config.K_MSA_TRACK)) {
-                stage("msaTrack", () -> new MsaHooks(this).installTrack(cl));
+                stage("msaTrack", () -> TrackHooks.install(this, cl));
             }
             if (Config.on(Config.K_MSA_SPLASH)) {
                 stage("msaSplash", () -> new MsaHooks(this).installSplash(cl));

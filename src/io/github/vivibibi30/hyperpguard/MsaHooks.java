@@ -60,10 +60,6 @@ final class MsaHooks {
                 + " firstActive=" + firstActive);
     }
 
-    void installTrack(ClassLoader cl) {
-        TrackHooks.install(m, cl);
-    }
-
     /**
      * 开屏广告。
      *
