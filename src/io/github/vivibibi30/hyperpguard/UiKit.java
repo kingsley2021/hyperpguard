@@ -17,12 +17,52 @@ final class UiKit {
     private final int cardColor;
     private final int lineColor;
     private final boolean night;
+    private final int subColor;
 
-    UiKit(Context c, int cardColor, int lineColor, boolean night) {
+    UiKit(Context c, int cardColor, int lineColor, int subColor, boolean night) {
         this.c = c;
         this.cardColor = cardColor;
         this.lineColor = lineColor;
+        this.subColor = subColor;
         this.night = night;
+    }
+
+    /** 分组标题：左边 14sp 标题，右边可选 12sp 说明 */
+    View sectionRow(String title, String right) {
+        LinearLayout row = new LinearLayout(c);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.BOTTOM);
+        row.setMinimumHeight(dp(35));
+        row.setPadding(dp(12), dp(16), dp(12), dp(8));
+
+        android.widget.TextView left = new android.widget.TextView(c);
+        left.setText(title);
+        left.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        left.setTextColor(subColor);
+        row.addView(left, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        if (right != null && !right.isEmpty()) {
+            android.widget.TextView r = new android.widget.TextView(c);
+            r.setText(right);
+            r.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+            r.setTextColor(subColor);
+            r.setMaxLines(1);
+            r.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            row.addView(r);
+        }
+        return row;
+    }
+
+    android.widget.TextView sectionTitle(String text) {
+        android.widget.TextView tv = new android.widget.TextView(c);
+        tv.setText(text);
+        tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        tv.setTextColor(subColor);
+        tv.setMinHeight(dp(35));
+        tv.setGravity(android.view.Gravity.BOTTOM);
+        tv.setPadding(dp(12), dp(16), 0, dp(8));
+        return tv;
     }
 
     int dp(int v) {

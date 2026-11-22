@@ -312,7 +312,7 @@ public class MainActivity extends Activity {
             SUB = 0xFF8A8A8E;
             LINE = 0xFFEFEFF0;
         }
-        kit = new UiKit(this, CARD, LINE, nightMode);
+        kit = new UiKit(this, CARD, LINE, SUB, nightMode);
         try {
             getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
                     nightMode ? 0xFF000000 : BG));
@@ -888,7 +888,7 @@ public class MainActivity extends Activity {
     private LinearLayout buildGeneralPage() {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("HyperPGuard"));
-        root.addView(sectionRow("通用", "tip：开关打开 = 拦截该行为，关闭 = 放行"));
+        root.addView(kit.sectionRow("通用", "tip：开关打开 = 拦截该行为，关闭 = 放行"));
         LinearLayout global = kit.card();
         makeSwitchRow(global, "总开关", "关闭后本模块在所有进程不生效",
                 Config.K_MASTER, true);
@@ -1116,7 +1116,7 @@ public class MainActivity extends Activity {
         actions.addView(cfgRow);
         root.addView(actions);
 
-        root.addView(sectionRow("关于", ""));
+        root.addView(kit.sectionRow("关于", ""));
         LinearLayout about = kit.card();
         about.addView(linkRow("GitHub 仓库", "vivibibi30/hyperpguard", URL_REPO));
         about.addView(kit.line());
@@ -1618,42 +1618,9 @@ public class MainActivity extends Activity {
 
     /** 分组小标题：13sp 灰色，放在卡片外 */
     /** 分组行：左侧小标题，右侧可放一句说明（右对齐，右侧留白与左侧一致） */
-    private android.view.View sectionRow(String title, String right) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.BOTTOM);
-        row.setMinimumHeight(dp(35));
-        row.setPadding(dp(12), dp(16), dp(12), dp(8));
 
-        TextView left = new TextView(this);
-        left.setText(title);
-        left.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        left.setTextColor(SUB);
-        row.addView(left, new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        if (right != null && !right.isEmpty()) {
-            TextView r = new TextView(this);
-            r.setText(right);
-            r.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-            r.setTextColor(SUB);
-            r.setMaxLines(1);
-            r.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            row.addView(r);
-        }
-        return row;
-    }
 
-    private TextView sectionTitle(String text) {
-        TextView tv = new TextView(this);
-        tv.setText(text);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setTextColor(SUB);
-        tv.setMinHeight(dp(35));
-        tv.setGravity(Gravity.BOTTOM);
-        tv.setPadding(dp(12), dp(16), 0, dp(8));
-        return tv;
-    }
 
 
 
