@@ -14,22 +14,19 @@ import android.widget.LinearLayout;
  */
 final class UiKit {
     private final Context c;
-    private final int cardColor;
-    private final int lineColor;
-    private final boolean night;
-    private final int subColor;
-    private final int textColor;
-    private final int accentColor;
+    private final Theme t;
 
-    UiKit(Context c, int cardColor, int lineColor, int subColor, int textColor,
-          int accentColor, boolean night) {
+    UiKit(Context c, Theme theme) {
         this.c = c;
-        this.cardColor = cardColor;
-        this.lineColor = lineColor;
-        this.subColor = subColor;
-        this.textColor = textColor;
-        this.accentColor = accentColor;
-        this.night = night;
+        this.t = theme;
+    }
+
+    int sub() {
+        return t.sub;
+    }
+
+    int accent() {
+        return t.accent;
     }
 
     /** 标签 + 右侧灰色值，不可点 */
@@ -42,14 +39,14 @@ final class UiKit {
         android.widget.TextView name = new android.widget.TextView(c);
         name.setText(label);
         name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
-        name.setTextColor(textColor);
+        name.setTextColor(t.text);
         name.setLayoutParams(new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(name);
         android.widget.TextView val = new android.widget.TextView(c);
         val.setText(value);
         val.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
-        val.setTextColor(subColor);
+        val.setTextColor(t.sub);
         row.addView(val);
         return row;
     }
@@ -66,14 +63,14 @@ final class UiKit {
         android.widget.TextView name = new android.widget.TextView(c);
         name.setText(label);
         name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
-        name.setTextColor(textColor);
+        name.setTextColor(t.text);
         name.setLayoutParams(new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         row.addView(name);
         android.widget.TextView link = new android.widget.TextView(c);
         link.setText(value);
         link.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
-        link.setTextColor(accentColor);
+        link.setTextColor(t.accent);
         row.addView(link);
         row.setOnClickListener(v -> onClick.run());
         return row;
@@ -84,7 +81,7 @@ final class UiKit {
         android.widget.TextView b = new android.widget.TextView(c);
         b.setText(label);
         b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
-        b.setTextColor(accentColor);
+        b.setTextColor(t.accent);
         b.setGravity(android.view.Gravity.CENTER);
         b.setBackground(pressBackground());
         b.setPadding(0, dp(12), 0, dp(12));
@@ -106,12 +103,12 @@ final class UiKit {
         android.widget.TextView t1 = new android.widget.TextView(c);
         t1.setText(title);
         t1.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
-        t1.setTextColor(textColor);
+        t1.setTextColor(t.text);
 
         android.widget.TextView t2 = new android.widget.TextView(c);
         t2.setText(desc);
         t2.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
-        t2.setTextColor(subColor);
+        t2.setTextColor(t.sub);
         t2.setPadding(0, dp(2), 0, 0);
 
         row.addView(t1);
@@ -131,7 +128,7 @@ final class UiKit {
         android.widget.TextView left = new android.widget.TextView(c);
         left.setText(title);
         left.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
-        left.setTextColor(subColor);
+        left.setTextColor(t.sub);
         row.addView(left, new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -139,7 +136,7 @@ final class UiKit {
             android.widget.TextView r = new android.widget.TextView(c);
             r.setText(right);
             r.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
-            r.setTextColor(subColor);
+            r.setTextColor(t.sub);
             r.setMaxLines(1);
             r.setEllipsize(android.text.TextUtils.TruncateAt.END);
             row.addView(r);
@@ -151,7 +148,7 @@ final class UiKit {
         android.widget.TextView tv = new android.widget.TextView(c);
         tv.setText(text);
         tv.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
-        tv.setTextColor(subColor);
+        tv.setTextColor(t.sub);
         tv.setMinHeight(dp(35));
         tv.setGravity(android.view.Gravity.BOTTOM);
         tv.setPadding(dp(12), dp(16), 0, dp(8));
@@ -166,7 +163,7 @@ final class UiKit {
         LinearLayout c = new LinearLayout(this.c);
         c.setOrientation(LinearLayout.VERTICAL);
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(cardColor);
+        bg.setColor(t.card);
         bg.setCornerRadius(dp(20));
         c.setBackground(bg);
         c.setPadding(dp(16), dp(4), dp(16), dp(4));
@@ -179,7 +176,7 @@ final class UiKit {
 
     View divider() {
         View v = new View(c);
-        v.setBackgroundColor(lineColor);
+        v.setBackgroundColor(t.line);
         int h = Math.max(1, Math.round(c.getResources().getDisplayMetrics().density * 0.75f));
         v.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, h));
@@ -191,13 +188,13 @@ final class UiKit {
         l.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
         GradientDrawable bg = new GradientDrawable();
-        bg.setColor(lineColor);
+        bg.setColor(t.line);
         l.setBackground(bg);
         return l;
     }
 
     Drawable pressBackground() {
-        int pressed = night ? 0xFF3A3A3C : 0xFFE5E5E5;
+        int pressed = t.night ? 0xFF3A3A3C : 0xFFE5E5E5;
         GradientDrawable on = new GradientDrawable();
         on.setColor(pressed);
         on.setCornerRadius(dp(12));
