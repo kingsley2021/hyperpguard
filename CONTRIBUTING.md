@@ -24,6 +24,14 @@
 - 新增拦截目标时写明判据（域名、方法签名、表名）；类名与方法签名属事实，可以写，
   但不要贴方法体的 smali、反编译源码或解包后的资源文件
 
+## 合并方式与作者保留
+
+合并 PR 一律用 **Rebase and merge** 或 **Create a merge commit**，不用 Squash and merge——后者会把提交作者变成维护者，贡献者的 GitHub contributors 记录就丢了。
+
+如果因为冲突必须 squash：在提交信息里保留 `Co-authored-by: 名字 <邮箱>`，并在合并后用
+`git commit --allow-empty --author="名字 <邮箱>"` 补一条作者正确的记录，或在 README「致谢」里列明。
+合并后检查一次 contributors 页，确认对方还在。
+
 ## 商业化
 
 本仓库不接受以本项目名义的付费分发、捆绑安装或「赞助解锁功能」。第三方 fork 按 GPL-3.0 自行处理，但不要使用本项目的名称与图标。
