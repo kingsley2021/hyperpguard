@@ -1194,6 +1194,8 @@ public class MainActivity extends Activity {
         addMisightRow(global);
         global.addView(divider());
         addCustomRulesRow(global);
+        global.addView(divider());
+        addSelfCheckRow(global);
         root.addView(global);
 
         return root;
@@ -1389,16 +1391,12 @@ public class MainActivity extends Activity {
         LinearLayout actions = card();
         addHideIconRow(actions);
         actions.addView(divider());
+        addListRow(actions, "查看日志", "读取本模块在 logcat 里的输出", () -> loadLog(false));
+        actions.addView(divider());
+        addListRow(actions, "分享日志", "把日志文本导出分享", () -> loadLog(true));
+        actions.addView(divider());
         addCleanLogRow(actions);
-        actions.addView(divider());
-        actions.addView(actionRow("查看日志", () -> loadLog(false)));
-        actions.addView(divider());
-        actions.addView(actionRow("分享日志", () -> loadLog(true)));
         root.addView(actions);
-
-        LinearLayout diag = card();
-        diag.addView(singleButton("自检", () -> showDiagnostics()));
-        root.addView(diag);
 
         LinearLayout cfg = card();
         ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
@@ -2171,6 +2169,38 @@ public class MainActivity extends Activity {
     }
 
     /* ---------------- 自定义规则 ---------------- */
+
+    /** 主页的「自检」：与自定义规则同一版式的一行 */
+    private void addSelfCheckRow(LinearLayout parent) {
+        addListRow(parent, "自检", "核对注入、作用域与框架运行中的目标", () -> showDiagnostics());
+    }
+
+    /** 列表行：标题 16sp + 副标题 12sp，与「清理日志缓冲」等完全同一版式 */
+    private void addListRow(LinearLayout parent, String title, String desc, Runnable onClick) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setMinimumHeight(dp(56));
+        row.setPadding(0, dp(9), 0, dp(9));
+        row.setClickable(true);
+        row.setBackground(pressBackground());
+        row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
+
+        TextView t1 = new TextView(this);
+        t1.setText(title);
+        t1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        t1.setTextColor(TEXT);
+
+        TextView t2 = new TextView(this);
+        t2.setText(desc);
+        t2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        t2.setTextColor(SUB);
+        t2.setPadding(0, dp(2), 0, 0);
+
+        row.addView(t1);
+        row.addView(t2);
+        row.setOnClickListener(v -> onClick.run());
+        parent.addView(row);
+    }
 
     private void addCustomRulesRow(LinearLayout parent) {
         LinearLayout row = new LinearLayout(this);
