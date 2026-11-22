@@ -1385,6 +1385,11 @@ public class MainActivity extends Activity {
         about.addView(line());
         about.addView(linkRow("问题反馈", "Issues", URL_ISSUES));
         about.addView(line());
+        ViewGroup misightRow = infoRow("被采集数据", "MiSight 事件库 · 只读");
+        misightRow.setClickable(true);
+        misightRow.setOnClickListener(v -> startActivity(
+                new android.content.Intent(this, MisightActivity.class)));
+        about.addView(misightRow);
         about.addView(infoRow("版本", "v" + Config.VERSION));
         Button checkUpdateBtn = new Button(this);
         checkUpdateBtn.setText("检查更新");
@@ -3319,8 +3324,40 @@ public class MainActivity extends Activity {
      * 源码里那个胶囊是有实感的玻璃，因为背后内容被折射进来；纯色块做不到。
      */
     private static final class GlassPill extends android.view.View {
+        /**
+         * 液态玻璃折射：中心轻微放大、边缘向外位移，对应 miuix lens() 的观感。
+         * 只在 API 33+（RuntimeShader）生效，低版本仍用直接贴模糊图。
+         */
+        private static final String LENS_SHADER =
+                "uniform shader content;\n"
+                        + "uniform float2 size;\n"
+                        + "uniform float2 center;\n"
+                        + "uniform float zoom;\n"
+                        + "uniform float edge;\n"
+                        + "half4 main(float2 p) {\n"
+                        + "    float2 halfSize = max(size * 0.5, float2(1.0, 1.0));\n"
+                        + "    float2 d = p - center;\n"
+                        + "    float2 n = d / halfSize;\n"
+                        + "    float r = min(length(n), 1.0);\n"
+                        + "    float k = 1.0 + zoom * (1.0 - r * r);\n"
+                        + "    float2 q = center + d / k;\n"
+                        + "    float e = edge * smoothstep(0.7, 1.0, r) * 0.05;\n"
+                        + "    float len = max(length(d), 0.001);\n"
+                        + "    q += (d / len) * e * halfSize.y;\n"
+                        + "    half4 c = content.eval(q);\n"
+                        + "    float spec = 0.10 * (1.0 - r) * (1.0 - r);\n"
+                        + "    return c + half4(spec, spec, spec, 0.0);\n"
+                        + "}\n";
+
         private boolean night;
         private android.graphics.BitmapShader shader;
+        private android.graphics.RuntimeShader lens;
+        private float lensStrength = 0.16f;
+        /** 玻璃厚度：左上高光 + 底部内阴影，尺寸变化时重建 */
+        private android.graphics.RadialGradient sheen;
+        private android.graphics.LinearGradient shade;
+        private float sheenW;
+        private float sheenH;
         private float srcOffsetX;
         private float srcWidth = 1f;
         private final android.graphics.Matrix matrix = new android.graphics.Matrix();
@@ -3370,8 +3407,48 @@ public class MainActivity extends Activity {
                 // 位图是整条底栏的模糊结果，偏移到胶囊这一格
                 matrix.setTranslate(-srcOffsetX, 0f);
                 shader.setLocalMatrix(matrix);
-                canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
+                boolean lensed = false;
+                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                    try {
+                        if (lens == null) {
+                            lens = new android.graphics.RuntimeShader(LENS_SHADER);
+                        }
+                        lens.setInputShader("content", shader);
+                        lens.setFloatUniform("size", new float[]{w, h});
+                        lens.setFloatUniform("center", new float[]{w / 2f, h / 2f});
+                        lens.setFloatUniform("zoom", lensStrength);
+                        lens.setFloatUniform("edge", 1f);
+                        fill.setShader(lens);
+                        canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
+                        lensed = true;
+                    } catch (Throwable ignored) {
+                        // AGSL 不可用时退回直接贴模糊图
+                    }
+                }
+                if (!lensed) {
+                    fill.setShader(shader);
+                    canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
+                }
             }
+
+            if (sheen == null || sheenW != w || sheenH != h) {
+                sheenW = w;
+                sheenH = h;
+                sheen = new android.graphics.RadialGradient(
+                        w * 0.38f, h * 0.20f, Math.max(w, h) * 0.80f,
+                        new int[]{0x33FFFFFF, 0x0DFFFFFF, 0x00FFFFFF},
+                        new float[]{0f, 0.45f, 1f},
+                        android.graphics.Shader.TileMode.CLAMP);
+                shade = new android.graphics.LinearGradient(0f, h * 0.55f, 0f, h,
+                        0x00000000, 0x24000000,
+                        android.graphics.Shader.TileMode.CLAMP);
+            }
+            // 玻璃厚度：左上高光
+            fill.setShader(sheen);
+            canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
+            // 底部内阴影，让边缘有厚度
+            fill.setShader(shade);
+            canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
 
             fill.setShader(null);
             // 源码 onDrawSurface：浅色 Black.copy(0.1f)，深色 White.copy(0.1f)
