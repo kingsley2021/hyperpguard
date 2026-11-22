@@ -397,7 +397,7 @@ public class MainActivity extends Activity {
     private LinearLayout tabBar;
     private final java.util.List<TabIcon> tabIcons = new ArrayList<>();
     private final java.util.List<TextView> tabLabels = new ArrayList<>();
-    private ImageView glassBackdrop;
+    private GlassShell glassBackdrop;
 
     /* ───────── 胶囊驱动：照 DampedDragAnimation.kt 的物理模型 ─────────
      * 源码用的是
@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
         GradientDrawable glass = new GradientDrawable();
         // 半透明底 + 下层的模糊位图 → 视觉上是液态玻璃；不透明会盖掉模糊
         // surfaceContainer.copy(0.4f)：40% 不透明，剩下的交给下层的模糊位图
-        glass.setColor(nightMode ? 0x14211F26 : 0x14F3EDF7);
+        glass.setColor(nightMode ? 0x66211F26 : 0x66F3EDF7);   // KernelSU: surfaceContainer.copy(0.4f)
         glass.setCornerRadius(dp(32));       // CircleShape 等价：64dp 高的一半
         barShell.setBackground(glass);
         barShell.setPadding(dp(4), dp(4), dp(4), dp(4));
@@ -749,15 +749,8 @@ public class MainActivity extends Activity {
         barWrap.setClipChildren(false);      // 否则 elevation 阴影被容器裁掉
         barWrap.setClipToPadding(false);
         // 液态玻璃底层：模糊位图，被圆角 outline 裁住，垫在 barShell 下面
-        glassBackdrop = new ImageView(this);
-        glassBackdrop.setScaleType(ImageView.ScaleType.FIT_XY);
-        GradientDrawable glassClip = new GradientDrawable();
-        // 不再兜白色：没有模糊位图时宁可透明，也不能变成一块白板
-        glassClip.setColor(0x00000000);   // 完全透明：宁可看到清晰内容，也不要白板
-        glassClip.setCornerRadius(dp(32));
-        glassBackdrop.setBackground(glassClip);
-        glassBackdrop.setClipToOutline(true);
-        glassBackdrop.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
+        glassBackdrop = new GlassShell(this, dp(32));
+        glassBackdrop.setTint(nightMode ? 0x66211F26 : 0x66F3EDF7);
         barWrap.addView(glassBackdrop, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -1121,7 +1114,8 @@ public class MainActivity extends Activity {
     private LinearLayout pageRoot() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(20) + statusBarHeight(), dp(16), dp(24) + dp(104));
+        // 底部留出底栏高度 + 8dp：内容能滚到栏后方，滚到底时最后一行仍露在栏上
+        root.setPadding(dp(16), dp(20) + statusBarHeight(), dp(16), dp(72));
         return root;
     }
 
@@ -1733,7 +1727,19 @@ public class MainActivity extends Activity {
             stage.draw(c);
             android.graphics.Bitmap scaled = android.graphics.Bitmap.createScaledBitmap(small, w, h, true);
             small.recycle();
-            glassBackdrop.setImageBitmap(scaled);
+            // CPU 侧强模糊：先缩到 1/10 再放大，得到真正的毛玻璃，不依赖 GPU RenderEffect
+            try {
+                int bw = Math.max(1, scaled.getWidth() / 10);
+                int bh = Math.max(1, scaled.getHeight() / 10);
+                android.graphics.Bitmap tiny = android.graphics.Bitmap.createScaledBitmap(
+                        scaled, bw, bh, true);
+                android.graphics.Bitmap blurred = android.graphics.Bitmap.createScaledBitmap(
+                        tiny, scaled.getWidth(), scaled.getHeight(), true);
+                tiny.recycle();
+                scaled = blurred;
+            } catch (Throwable ignored) {
+            }
+            glassBackdrop.setBackdrop(scaled);
             if (tabPill != null) {
                 /* 直接裁出胶囊背后那一块喂给玻璃球：RuntimeShader 的输入不走 localMatrix，
                  * 传整条再平移会让胶囊采样到别的格子（表现是胶囊里一片空白）。 */
@@ -1749,22 +1755,6 @@ public class MainActivity extends Activity {
                         scaled, left, top, pw, ph);
                 tabPill.setBackdrop(slice);
                 tabPill.setSrcOffsetX(0f);
-            }
-            if (android.os.Build.VERSION.SDK_INT >= 31) {
-                // 源码：blur(4.dp) + vibrancy()，不是大半径糊成一片
-                float r = 8f * getResources().getDisplayMetrics().density;
-                android.graphics.RenderEffect blur =
-                        android.graphics.RenderEffect.createBlurEffect(
-                                r, r, android.graphics.Shader.TileMode.CLAMP);
-                android.graphics.ColorMatrix cm = new android.graphics.ColorMatrix();
-                cm.setSaturation(1.6f);
-                android.graphics.RenderEffect sat =
-                        android.graphics.RenderEffect.createColorFilterEffect(
-                                new android.graphics.ColorMatrixColorFilter(cm), null);
-                // 外壳只做饱和度 + 模糊：在 ImageView 上串 RuntimeShaderEffect 会输出空白
-                glassBackdrop.setRenderEffect(
-                        android.graphics.RenderEffect.createChainEffect(sat, blur));
-
             }
         } catch (Throwable ignored) {
         }
@@ -3622,6 +3612,82 @@ public class MainActivity extends Activity {
      * 对应 KernelSU 的 drawBackdrop(shape = pillShape) + onDrawSurface(drawRect)。
      * 源码里那个胶囊是有实感的玻璃，因为背后内容被折射进来；纯色块做不到。
      */
+    /**
+     * 底栏外壳：照 miuix 的 drawBackdrop pipeline —— backdrop 位图 → 模糊（CPU 降采样）
+     * → lens(24dp, 24dp) → 40% surfaceContainer 叠色。
+     */
+    private static final class GlassShell extends android.view.View {
+        private final android.graphics.Paint paint =
+                new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        private final float radius;
+        private android.graphics.BitmapShader content;
+        private android.graphics.RuntimeShader lens;
+        private int tint = 0x66F3EDF7;
+        private boolean warned;
+
+        GlassShell(android.content.Context c, float radius) {
+            super(c);
+            this.radius = radius;
+        }
+
+        void setTint(int color) {
+            tint = color;
+            invalidate();
+        }
+
+        void setBackdrop(android.graphics.Bitmap b) {
+            content = b == null ? null
+                    : new android.graphics.BitmapShader(b,
+                    android.graphics.Shader.TileMode.CLAMP,
+                    android.graphics.Shader.TileMode.CLAMP);
+            invalidate();
+        }
+
+        @Override
+        protected void onDraw(android.graphics.Canvas canvas) {
+            float w = getWidth();
+            float h = getHeight();
+            if (w <= 0 || h <= 0) return;
+            boolean drawn = false;
+            if (content != null && android.os.Build.VERSION.SDK_INT >= 33) {
+                try {
+                    if (lens == null) {
+                        String src = GlassPill.lensSource(getContext());
+                        if (!src.isEmpty()) lens = new android.graphics.RuntimeShader(src);
+                    }
+                    if (lens != null) {
+                        float d = getResources().getDisplayMetrics().density;
+                        float pad = 24f * d;
+                        lens.setInputShader("content", content);
+                        lens.setFloatUniform("size", new float[]{w, h});
+                        lens.setFloatUniform("offset", new float[]{-pad, -pad});
+                        lens.setFloatUniform("cornerRadii",
+                                new float[]{radius, radius, radius, radius});
+                        lens.setFloatUniform("refractionHeight", pad);
+                        lens.setFloatUniform("refractionAmount", -pad);
+                        lens.setFloatUniform("depthEffect", 1f);
+                        lens.setFloatUniform("chromaticAberration", 0.5f);
+                        paint.setShader(lens);
+                        canvas.drawRoundRect(0f, 0f, w, h, radius, radius, paint);
+                        drawn = true;
+                    }
+                } catch (Throwable t) {
+                    if (!warned) {
+                        warned = true;
+                        Logs.i("shell lens fail: " + t);
+                    }
+                }
+            }
+            if (!drawn) {
+                paint.setShader(content);
+                canvas.drawRoundRect(0f, 0f, w, h, radius, radius, paint);
+            }
+            paint.setShader(null);
+            paint.setColor(tint);
+            canvas.drawRoundRect(0f, 0f, w, h, radius, radius, paint);
+        }
+    }
+
     private static final class GlassPill extends android.view.View {
         /**
          * 液态玻璃折射：直接使用 miuix 的 AGSL（assets/lens_refraction.agsl），
