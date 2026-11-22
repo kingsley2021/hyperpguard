@@ -312,7 +312,7 @@ public class MainActivity extends Activity {
             SUB = 0xFF8A8A8E;
             LINE = 0xFFEFEFF0;
         }
-        kit = new UiKit(this, CARD, LINE, SUB, nightMode);
+        kit = new UiKit(this, CARD, LINE, SUB, TEXT, ACCENT, nightMode);
         try {
             getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
                     nightMode ? 0xFF000000 : BG));
@@ -1102,15 +1102,15 @@ public class MainActivity extends Activity {
         root.addView(pageTitle("设置"));
 
         LinearLayout actions = kit.card();
-        addListRow(actions, "查看日志", "读取本模块在 logcat 里的输出", () -> loadLog(false));
+        kit.addListRow(actions, "查看日志", "读取本模块在 logcat 里的输出", () -> loadLog(false));
         actions.addView(kit.divider());
-        addListRow(actions, "分享日志", "把日志文本导出分享", () -> loadLog(true));
+        kit.addListRow(actions, "分享日志", "把日志文本导出分享", () -> loadLog(true));
         actions.addView(kit.divider());
         addCleanLogRow(actions);
         actions.addView(kit.divider());
         addHideIconRow(actions);
         actions.addView(kit.divider());
-        ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
+        ViewGroup cfgRow = kit.infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
         cfgRow.setClickable(true);
         cfgRow.setOnClickListener(v -> ConfigIO.show(this, kit, SUB, ACCENT));
         actions.addView(cfgRow);
@@ -1118,13 +1118,13 @@ public class MainActivity extends Activity {
 
         root.addView(kit.sectionRow("关于", ""));
         LinearLayout about = kit.card();
-        about.addView(linkRow("GitHub 仓库", "vivibibi30/hyperpguard", URL_REPO));
+        about.addView(kit.linkRow("GitHub 仓库", "vivibibi30/hyperpguard", () -> openUrl(URL_REPO)));
         about.addView(kit.line());
-        about.addView(linkRow("LSPosed 模块页", "modules.lsposed.org", URL_MODULE));
+        about.addView(kit.linkRow("LSPosed 模块页", "modules.lsposed.org", () -> openUrl(URL_MODULE)));
         about.addView(kit.line());
-        about.addView(linkRow("问题反馈", "Issues", URL_ISSUES));
+        about.addView(kit.linkRow("问题反馈", "Issues", () -> openUrl(URL_ISSUES)));
         about.addView(kit.line());
-        about.addView(infoRow("版本", "v" + Config.VERSION));
+        about.addView(kit.infoRow("版本", "v" + Config.VERSION));
         Button checkUpdateBtn = new Button(this);
         checkUpdateBtn.setText("检查更新");
         checkUpdateBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
@@ -1151,23 +1151,11 @@ public class MainActivity extends Activity {
     }
 
     /** 整行一个动作按钮：和组件页的批量按钮同一版式 */
-    private TextView singleButton(String label, Runnable onClick) {
-        TextView b = new TextView(this);
-        b.setText(label);
-        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        b.setTextColor(ACCENT);
-        b.setGravity(Gravity.CENTER);
-        b.setBackground(kit.pressBackground());
-        b.setPadding(0, dp(12), 0, dp(12));
-        b.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        b.setOnClickListener(v -> onClick.run());
-        return b;
-    }
+
 
     /** 与 linkRow 同规格的可点击行，右侧不显示链接 */
     private ViewGroup actionRow(String label, Runnable onClick) {
-        ViewGroup row = infoRow(label, "");
+        ViewGroup row = kit.infoRow(label, "");
         row.setClickable(true);
         row.setOnClickListener(v -> onClick.run());
         return row;
@@ -1824,35 +1812,11 @@ public class MainActivity extends Activity {
 
     /** 主页的「自检」：蓝色文字、居中的整行按钮 */
     private void addSelfCheckRow(LinearLayout parent) {
-        parent.addView(singleButton("自检", () -> showDiagnostics()));
+        parent.addView(kit.singleButton("自检", () -> showDiagnostics()));
     }
 
     /** 列表行：标题 16sp + 副标题 12sp，与「清理日志缓冲」等完全同一版式 */
-    private void addListRow(LinearLayout parent, String title, String desc, Runnable onClick) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.VERTICAL);
-        row.setMinimumHeight(dp(56));
-        row.setPadding(0, dp(9), 0, dp(9));
-        row.setClickable(true);
-        row.setBackground(kit.pressBackground());
-        row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
 
-        TextView t1 = new TextView(this);
-        t1.setText(title);
-        t1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
-        t1.setTextColor(TEXT);
-
-        TextView t2 = new TextView(this);
-        t2.setText(desc);
-        t2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        t2.setTextColor(SUB);
-        t2.setPadding(0, dp(2), 0, 0);
-
-        row.addView(t1);
-        row.addView(t2);
-        row.setOnClickListener(v -> onClick.run());
-        parent.addView(row);
-    }
 
     private void addCustomRulesRow(LinearLayout parent) {
         LinearLayout row = new LinearLayout(this);
@@ -2886,52 +2850,9 @@ public class MainActivity extends Activity {
     /* ---------------- 关于 / 更新 ---------------- */
 
     /** 与 linkRow 同规格的信息行：右侧值用次要色，不可点击 */
-    private ViewGroup infoRow(String label, String value) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight(dp(56));
-        // 左右 4dp 与 linkRow 一致，否则「版本 / vX.Y.Z」比上面几行更贴卡片边缘
-        row.setPadding(dp(4), dp(9), dp(4), dp(9));
-        TextView name = new TextView(this);
-        name.setText(label);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        name.setTextColor(TEXT);
-        name.setLayoutParams(new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        row.addView(name);
-        TextView val = new TextView(this);
-        val.setText(value);
-        val.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        val.setTextColor(SUB);
-        row.addView(val);
-        return row;
-    }
 
-    private ViewGroup linkRow(String label, String value, final String url) {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setMinimumHeight(dp(56));
-        row.setPadding(0, dp(9), 0, dp(9));
-        row.setClickable(true);
-        row.setBackground(kit.pressBackground());
-        row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
-        TextView name = new TextView(this);
-        name.setText(label);
-        name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        name.setTextColor(TEXT);
-        name.setLayoutParams(new LinearLayout.LayoutParams(0,
-                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        row.addView(name);
-        TextView link = new TextView(this);
-        link.setText(value);
-        link.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
-        link.setTextColor(ACCENT);
-        row.addView(link);
-        row.setOnClickListener(v -> openUrl(url));
-        return row;
-    }
+
+
 
     private void openUrl(String url) {
         try {

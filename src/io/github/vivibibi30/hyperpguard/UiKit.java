@@ -18,13 +18,106 @@ final class UiKit {
     private final int lineColor;
     private final boolean night;
     private final int subColor;
+    private final int textColor;
+    private final int accentColor;
 
-    UiKit(Context c, int cardColor, int lineColor, int subColor, boolean night) {
+    UiKit(Context c, int cardColor, int lineColor, int subColor, int textColor,
+          int accentColor, boolean night) {
         this.c = c;
         this.cardColor = cardColor;
         this.lineColor = lineColor;
         this.subColor = subColor;
+        this.textColor = textColor;
+        this.accentColor = accentColor;
         this.night = night;
+    }
+
+    /** 标签 + 右侧灰色值，不可点 */
+    ViewGroup infoRow(String label, String value) {
+        LinearLayout row = new LinearLayout(c);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(dp(56));
+        row.setPadding(dp(4), dp(9), dp(4), dp(9));
+        android.widget.TextView name = new android.widget.TextView(c);
+        name.setText(label);
+        name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        name.setTextColor(textColor);
+        name.setLayoutParams(new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(name);
+        android.widget.TextView val = new android.widget.TextView(c);
+        val.setText(value);
+        val.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+        val.setTextColor(subColor);
+        row.addView(val);
+        return row;
+    }
+
+    /** 标签 + 右侧强调色链接，点击动作由调用方给 */
+    ViewGroup linkRow(String label, String value, Runnable onClick) {
+        LinearLayout row = new LinearLayout(c);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        row.setMinimumHeight(dp(56));
+        row.setClickable(true);
+        row.setBackground(pressBackground());
+        row.setPadding(dp(4), dp(9), dp(4), dp(9));
+        android.widget.TextView name = new android.widget.TextView(c);
+        name.setText(label);
+        name.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        name.setTextColor(textColor);
+        name.setLayoutParams(new LinearLayout.LayoutParams(0,
+                ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        row.addView(name);
+        android.widget.TextView link = new android.widget.TextView(c);
+        link.setText(value);
+        link.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+        link.setTextColor(accentColor);
+        row.addView(link);
+        row.setOnClickListener(v -> onClick.run());
+        return row;
+    }
+
+    /** 整行一个强调色按钮 */
+    android.widget.TextView singleButton(String label, Runnable onClick) {
+        android.widget.TextView b = new android.widget.TextView(c);
+        b.setText(label);
+        b.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 14);
+        b.setTextColor(accentColor);
+        b.setGravity(android.view.Gravity.CENTER);
+        b.setBackground(pressBackground());
+        b.setPadding(0, dp(12), 0, dp(12));
+        b.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        b.setOnClickListener(v -> onClick.run());
+        return b;
+    }
+
+    /** 列表行：16sp 标题 + 12sp 副标题 */
+    void addListRow(LinearLayout parent, String title, String desc, Runnable onClick) {
+        LinearLayout row = new LinearLayout(c);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setMinimumHeight(dp(56));
+        row.setClickable(true);
+        row.setBackground(pressBackground());
+        row.setPadding(dp(4), dp(9), dp(4), dp(9));
+
+        android.widget.TextView t1 = new android.widget.TextView(c);
+        t1.setText(title);
+        t1.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
+        t1.setTextColor(textColor);
+
+        android.widget.TextView t2 = new android.widget.TextView(c);
+        t2.setText(desc);
+        t2.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 12);
+        t2.setTextColor(subColor);
+        t2.setPadding(0, dp(2), 0, 0);
+
+        row.addView(t1);
+        row.addView(t2);
+        row.setOnClickListener(v -> onClick.run());
+        parent.addView(row);
     }
 
     /** 分组标题：左边 14sp 标题，右边可选 12sp 说明 */
