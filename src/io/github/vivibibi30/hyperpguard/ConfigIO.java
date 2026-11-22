@@ -15,13 +15,13 @@ final class ConfigIO {
     private ConfigIO() {
     }
 
-    static void show(MainActivity a) {
+    static void show(MainActivity a, UiKit kit, int sub, int accent) {
         LinearLayout box = new LinearLayout(a);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(a.dp(20), a.dp(8), a.dp(20), a.dp(8));
+        box.setPadding(kit.dp(20), kit.dp(8), kit.dp(20), kit.dp(8));
         TextView tip = new TextView(a);
         tip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        tip.setTextColor(a.SUB);
+        tip.setTextColor(sub);
         tip.setText("导出：把当前开关与作用域清单写成文本存到 Download。\n"
                 + "导入：从剪贴板读取同一格式，校验后写回并热重载。\n"
                 + "文本是明文，含自定义规则里的域名，分享前注意。");
@@ -29,15 +29,15 @@ final class ConfigIO {
         TextView exp = new TextView(a);
         exp.setText("导出到 Download");
         exp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        exp.setTextColor(a.ACCENT);
-        exp.setPadding(0, a.dp(14), 0, a.dp(14));
+        exp.setTextColor(accent);
+        exp.setPadding(0, kit.dp(14), 0, kit.dp(14));
         exp.setOnClickListener(v -> export(a));
         box.addView(exp);
         TextView imp = new TextView(a);
         imp.setText("从剪贴板导入");
         imp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        imp.setTextColor(a.ACCENT);
-        imp.setPadding(0, a.dp(4), 0, a.dp(14));
+        imp.setTextColor(accent);
+        imp.setPadding(0, kit.dp(4), 0, kit.dp(14));
         imp.setOnClickListener(v -> importFromClipboard(a));
         box.addView(imp);
         new AlertDialog.Builder(a)

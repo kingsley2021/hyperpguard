@@ -49,9 +49,10 @@ public class MainActivity extends Activity {
     private int BG = 0xFFF2F3F5;
     private int CARD = 0xFFFFFFFF;
     private int TEXT = 0xFF1A1A1A;
-    int SUB = 0xFF8A8A8E;
+    private int SUB = 0xFF8A8A8E;
     private int LINE = 0xFFEFEFF0;
-    static final int ACCENT = 0xFF3478F6;
+    private UiKit kit;
+    private static final int ACCENT = 0xFF3478F6;
     private boolean nightMode;
 
     private static final String URL_REPO = "https://github.com/vivibibi30/hyperpguard";
@@ -311,6 +312,7 @@ public class MainActivity extends Activity {
             SUB = 0xFF8A8A8E;
             LINE = 0xFFEFEFF0;
         }
+        kit = new UiKit(this, CARD, LINE, nightMode);
         try {
             getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(
                     nightMode ? 0xFF000000 : BG));
@@ -887,25 +889,25 @@ public class MainActivity extends Activity {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("HyperPGuard"));
         root.addView(sectionRow("通用", "tip：开关打开 = 拦截该行为，关闭 = 放行"));
-        LinearLayout global = card();
+        LinearLayout global = kit.card();
         makeSwitchRow(global, "总开关", "关闭后本模块在所有进程不生效",
                 Config.K_MASTER, true);
-        global.addView(divider());
+        global.addView(kit.divider());
         makeSwitchRow(global, "路径特征", "按路径特征识别上报，是否生效",
                 Config.K_PATH, true);
-        global.addView(divider());
+        global.addView(kit.divider());
         makeSwitchRow(global, "记录未命中访问", "把没命中规则的域名写进日志，排查漏拦时临时打开",
                 Config.K_SNIFF, true);
-        global.addView(divider());
+        global.addView(kit.divider());
         makeSwitchRow(global, "开关热重载", "改开关后自动让已注入的进程换新配置；关闭则需手动重启",
                 Config.K_HOT_RELOAD, true);
-        global.addView(divider());
+        global.addView(kit.divider());
         addFraudDbRow(global);
-        global.addView(divider());
+        global.addView(kit.divider());
         addMisightRow(global);
-        global.addView(divider());
+        global.addView(kit.divider());
         addCustomRulesRow(global);
-        global.addView(divider());
+        global.addView(kit.divider());
         addSelfCheckRow(global);
         root.addView(global);
 
@@ -926,7 +928,7 @@ public class MainActivity extends Activity {
         bulk.addView(bulkButton("全部重启", this::restartAll));
         root.addView(bulk);
         for (final Group g : GROUPS) {
-            LinearLayout c = card();
+            LinearLayout c = kit.card();
             List<Switch> children = new ArrayList<>();
             List<LinearLayout> rows = new ArrayList<>();
             childSwitches.put(g.pkg, children);
@@ -950,7 +952,7 @@ public class MainActivity extends Activity {
             for (Item it : g.items) {
                 android.view.View dv = null;
                 if (c.getChildCount() > 0) {
-                    dv = divider();
+                    dv = kit.divider();
                     c.addView(dv);
                 }
                 LinearLayout row = new LinearLayout(this);
@@ -1099,29 +1101,29 @@ public class MainActivity extends Activity {
         LinearLayout root = pageRoot();
         root.addView(pageTitle("设置"));
 
-        LinearLayout actions = card();
+        LinearLayout actions = kit.card();
         addListRow(actions, "查看日志", "读取本模块在 logcat 里的输出", () -> loadLog(false));
-        actions.addView(divider());
+        actions.addView(kit.divider());
         addListRow(actions, "分享日志", "把日志文本导出分享", () -> loadLog(true));
-        actions.addView(divider());
+        actions.addView(kit.divider());
         addCleanLogRow(actions);
-        actions.addView(divider());
+        actions.addView(kit.divider());
         addHideIconRow(actions);
-        actions.addView(divider());
+        actions.addView(kit.divider());
         ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
         cfgRow.setClickable(true);
-        cfgRow.setOnClickListener(v -> ConfigIO.show(this));
+        cfgRow.setOnClickListener(v -> ConfigIO.show(this, kit, SUB, ACCENT));
         actions.addView(cfgRow);
         root.addView(actions);
 
         root.addView(sectionRow("关于", ""));
-        LinearLayout about = card();
+        LinearLayout about = kit.card();
         about.addView(linkRow("GitHub 仓库", "vivibibi30/hyperpguard", URL_REPO));
-        about.addView(line());
+        about.addView(kit.line());
         about.addView(linkRow("LSPosed 模块页", "modules.lsposed.org", URL_MODULE));
-        about.addView(line());
+        about.addView(kit.line());
         about.addView(linkRow("问题反馈", "Issues", URL_ISSUES));
-        about.addView(line());
+        about.addView(kit.line());
         about.addView(infoRow("版本", "v" + Config.VERSION));
         Button checkUpdateBtn = new Button(this);
         checkUpdateBtn.setText("检查更新");
@@ -1155,7 +1157,7 @@ public class MainActivity extends Activity {
         b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         b.setTextColor(ACCENT);
         b.setGravity(Gravity.CENTER);
-        b.setBackground(pressBackground());
+        b.setBackground(kit.pressBackground());
         b.setPadding(0, dp(12), 0, dp(12));
         b.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -1604,7 +1606,7 @@ public class MainActivity extends Activity {
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         tv.setTextColor(ACCENT);
         tv.setGravity(Gravity.CENTER);
-        tv.setBackground(pressBackground());
+        tv.setBackground(kit.pressBackground());
         tv.setPadding(0, dp(10), 0, dp(10));
         tv.setLayoutParams(new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -1653,20 +1655,7 @@ public class MainActivity extends Activity {
         return tv;
     }
 
-    private LinearLayout card() {
-        LinearLayout c = new LinearLayout(this);
-        c.setOrientation(LinearLayout.VERTICAL);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(CARD);
-        bg.setCornerRadius(dp(20));
-        c.setBackground(bg);
-        c.setPadding(dp(16), dp(4), dp(16), dp(4));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(10);
-        c.setLayoutParams(lp);
-        return c;
-    }
+
 
     /** 系统状态栏高度，用于沉浸式布局的顶部留白 */
     private int statusBarHeight() {
@@ -1689,22 +1678,9 @@ public class MainActivity extends Activity {
     }
 
     /** 列表分隔线：0.75dp，左侧从内容边缘开始，和 Settings 的 item divider 一致 */
-    private android.view.View divider() {
-        android.view.View v = new android.view.View(this);
-        v.setBackgroundColor(LINE);
-        int h = Math.max(1, Math.round(getResources().getDisplayMetrics().density * 0.75f));
-        v.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, h));
-        return v;
-    }
 
-    private ViewGroup line() {
-        LinearLayout l = new LinearLayout(this);
-        l.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(1)));
-        l.setBackgroundColor(LINE);
-        return l;
-    }
+
+
 
     private android.view.View groupNote(String text) {
         TextView tv = new TextView(this);
@@ -1748,7 +1724,7 @@ public class MainActivity extends Activity {
         reboot.setText("重启");
         reboot.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         reboot.setTextColor(ACCENT);
-        reboot.setBackground(pressBackground());
+        reboot.setBackground(kit.pressBackground());
         reboot.setPadding(dp(14), dp(8), dp(14), dp(8));
         reboot.setOnClickListener(v -> restartApp(g.pkg));
         row.addView(reboot);
@@ -1849,7 +1825,7 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.VERTICAL);
         row.setMinimumHeight(dp(56));
         row.setPadding(dp(4), dp(9), dp(4), dp(9));
-        row.setBackground(pressBackground());
+        row.setBackground(kit.pressBackground());
         row.setClickable(true);
 
         TextView t1 = new TextView(this);
@@ -1891,7 +1867,7 @@ public class MainActivity extends Activity {
         row.setMinimumHeight(dp(56));
         row.setPadding(0, dp(9), 0, dp(9));
         row.setClickable(true);
-        row.setBackground(pressBackground());
+        row.setBackground(kit.pressBackground());
         row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
 
         TextView t1 = new TextView(this);
@@ -1917,7 +1893,7 @@ public class MainActivity extends Activity {
         row.setMinimumHeight(dp(56));
         row.setPadding(0, dp(9), 0, dp(9));
         row.setClickable(true);
-        row.setBackground(pressBackground());
+        row.setBackground(kit.pressBackground());
         row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
 
         TextView t1 = new TextView(this);
@@ -1980,7 +1956,7 @@ public class MainActivity extends Activity {
             del.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
             del.setTextColor(ACCENT);
             del.setTag("accent");
-            del.setBackground(pressBackground());
+            del.setBackground(kit.pressBackground());
             del.setPadding(dp(14), dp(8), dp(14), dp(8));
             del.setOnClickListener(v -> {
                 StringBuilder sb = new StringBuilder();
@@ -2031,7 +2007,7 @@ public class MainActivity extends Activity {
         add.setTextColor(ACCENT);
         add.setTag("accent");
         add.setGravity(Gravity.CENTER);
-        add.setBackground(pressBackground());
+        add.setBackground(kit.pressBackground());
         add.setPadding(0, dp(10), 0, dp(10));
         add.setOnClickListener(v -> {
             String val = input.getText().toString().trim();
@@ -2062,7 +2038,7 @@ public class MainActivity extends Activity {
         clear.setTextColor(ACCENT);
         clear.setTag("accent");
         clear.setGravity(Gravity.CENTER);
-        clear.setBackground(pressBackground());
+        clear.setBackground(kit.pressBackground());
         clear.setPadding(0, dp(10), 0, dp(10));
         clear.setOnClickListener(v -> {
             Config.setCustomRules(this, "");
@@ -2077,7 +2053,7 @@ public class MainActivity extends Activity {
         doc.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
         doc.setTextColor(ACCENT);
         doc.setTag("accent");
-        doc.setBackground(pressBackground());
+        doc.setBackground(kit.pressBackground());
         doc.setPadding(dp(4), dp(10), dp(4), dp(10));
         doc.setOnClickListener(v -> openCustomRulesDoc());
 
@@ -2116,7 +2092,7 @@ public class MainActivity extends Activity {
         row.setMinimumHeight(dp(56));
         row.setPadding(0, dp(9), 0, dp(9));
         row.setClickable(true);
-        row.setBackground(pressBackground());
+        row.setBackground(kit.pressBackground());
         row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
 
         TextView t1 = new TextView(this);
@@ -2143,7 +2119,7 @@ public class MainActivity extends Activity {
         row.setMinimumHeight(dp(56));
         row.setPadding(0, dp(9), 0, dp(9));
         row.setClickable(true);
-        row.setBackground(pressBackground());
+        row.setBackground(kit.pressBackground());
         row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
 
         TextView t1 = new TextView(this);
@@ -2189,7 +2165,7 @@ public class MainActivity extends Activity {
         refresh.setTextColor(ACCENT);
         refresh.setTag("accent");
         refresh.setGravity(Gravity.CENTER);
-        refresh.setBackground(pressBackground());
+        refresh.setBackground(kit.pressBackground());
         refresh.setPadding(dp(24), dp(10), dp(24), dp(10));   // 按压范围只比文字大一圈
 
         TextView clear = new TextView(this);
@@ -2198,7 +2174,7 @@ public class MainActivity extends Activity {
         clear.setTextColor(ACCENT);
         clear.setTag("accent");      // paintDialogText 只保留带这个标记的颜色
         clear.setGravity(Gravity.CENTER);
-        clear.setBackground(pressBackground());
+        clear.setBackground(kit.pressBackground());
         clear.setPadding(dp(24), dp(10), dp(24), dp(10));
 
         // 按压高亮只在文字附近，铺满整行会让整条变色
@@ -2384,7 +2360,7 @@ public class MainActivity extends Activity {
         view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         view.setTextColor(ACCENT);
         view.setGravity(Gravity.CENTER);
-        view.setBackground(pressBackground());
+        view.setBackground(kit.pressBackground());
         view.setPadding(0, dp(10), 0, dp(10));
         view.setLayoutParams(new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -2396,7 +2372,7 @@ public class MainActivity extends Activity {
         share.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         share.setTextColor(ACCENT);
         share.setGravity(Gravity.CENTER);
-        share.setBackground(pressBackground());
+        share.setBackground(kit.pressBackground());
         share.setPadding(0, dp(10), 0, dp(10));
         share.setLayoutParams(new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -2408,7 +2384,7 @@ public class MainActivity extends Activity {
         diag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         diag.setTextColor(ACCENT);
         diag.setGravity(Gravity.CENTER);
-        diag.setBackground(pressBackground());
+        diag.setBackground(kit.pressBackground());
         diag.setPadding(0, dp(10), 0, dp(10));
         diag.setLayoutParams(new LinearLayout.LayoutParams(
                 0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
@@ -2972,7 +2948,7 @@ public class MainActivity extends Activity {
         row.setMinimumHeight(dp(56));
         row.setPadding(0, dp(9), 0, dp(9));
         row.setClickable(true);
-        row.setBackground(pressBackground());
+        row.setBackground(kit.pressBackground());
         row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
         TextView name = new TextView(this);
         name.setText(label);
@@ -3202,21 +3178,7 @@ public class MainActivity extends Activity {
     }
 
     /** 按下时的高亮底色：浅色模式比背景深，深色模式比背景浅 */
-    private android.graphics.drawable.Drawable pressBackground() {
-        int pressed = nightMode ? 0xFF3A3A3C : 0xFFE5E5E5;
-        android.graphics.drawable.GradientDrawable on =
-                new android.graphics.drawable.GradientDrawable();
-        on.setColor(pressed);
-        on.setCornerRadius(dp(12));
-        android.graphics.drawable.GradientDrawable off =
-                new android.graphics.drawable.GradientDrawable();
-        off.setColor(0x00000000);
-        android.graphics.drawable.StateListDrawable d =
-                new android.graphics.drawable.StateListDrawable();
-        d.addState(new int[]{android.R.attr.state_pressed}, on);
-        d.addState(new int[]{}, off);
-        return d;
-    }
+
 
     /** 对话框跟随深浅色：圆角卡片底、按钮强调色、正文与附注分色 */
     private void styleDialog(AlertDialog d) {
@@ -3275,7 +3237,7 @@ public class MainActivity extends Activity {
      * 对应 KernelSU 的 drawBackdrop(shape = pillShape) + onDrawSurface(drawRect)。
      * 源码里那个胶囊是有实感的玻璃，因为背后内容被折射进来；纯色块做不到。
      */
-    int dp(int v) {
+    private int dp(int v) {
         return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 }
