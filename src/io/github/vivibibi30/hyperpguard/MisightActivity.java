@@ -102,7 +102,7 @@ public final class MisightActivity extends Activity {
         back.setOnClickListener(v -> finish());
         header.addView(back, new LinearLayout.LayoutParams(dp(44), dp(44)));
 
-        TextView title = text("被采集数据", 20, TEXT, true);
+        TextView title = text("MiSight 事件库", 20, TEXT, true);
         LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         tlp.leftMargin = dp(4);
@@ -125,6 +125,19 @@ public final class MisightActivity extends Activity {
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         return root;
+    }
+
+    /** 说明卡：一句标题 + 一段正文，用来讲清库的作用、流向与边界 */
+    private LinearLayout noteCard(String title, String body) {
+        LinearLayout c = card();
+        TextView t = text(title, 14, TEXT, true);
+        t.setPadding(0, dp(12), 0, dp(4));
+        c.addView(t);
+        TextView b = text(body, 13, SUB, false);
+        b.setLineSpacing(dp(2), 1f);
+        b.setPadding(0, 0, 0, dp(12));
+        c.addView(b);
+        return c;
     }
 
     private LinearLayout card() {
@@ -246,13 +259,24 @@ public final class MisightActivity extends Activity {
         }
         content.addView(listCard);
 
-        LinearLayout note = card();
-        TextView n = text("只读快照，来源 /data/miuilog/misight/event.db。"
-                + "「事件」是系统埋点的编号，参数是该事件最近一次上报时带的字段；"
-                + "「上传记录」为空说明还没有数据被送出本机。", 13, SUB, false);
-        n.setPadding(0, dp(12), 0, dp(12));
-        note.addView(n);
-        content.addView(note);
+        content.addView(noteCard("这个库是什么",
+                "MiSight 是系统的行为采集框架：把用户行为（打开应用、充电、切换网络、使用时长等）"
+                        + "记成事件，落在 /data/miuilog/misight/event.db。"
+                        + "这里每条「事件」是一次记录，param_list 里是场景字段（例如应用包名、屏幕亮度、"
+                        + "时长、网络类型），不含聊天内容、文件或账号密码。"));
+
+        content.addView(noteCard("数据流向",
+                "1. 应用调用 MiSight 接口记录事件 → 本机写入 event_info，参数在 param_list\n"
+                        + "2. 框架按事件聚合到 event_daily，记每日次数与最近一次时间\n"
+                        + "3. 满足上报策略时写入 upload 记录，由系统服务在联网时发出；"
+                        + "upload 为空说明还没有数据出本机\n"
+                        + "4. 本页只读第 1、2 步落盘的结果，不写入、不上传、不参与拦截决策"));
+
+        content.addView(noteCard("使用边界",
+                "仅查看本机、当前用户的数据。读取需要用 su 把系统库复制到应用缓存，查询完立即删除副本；"
+                        + "页面不联网、不导出、不修改原库。"
+                        + "本模块只做本机自查，不协助读取他人设备或账号的数据；"
+                        + "请只在你自己拥有或获授权的设备上使用。"));
     }
 
     private View eventRow(final Misight.Event e) {

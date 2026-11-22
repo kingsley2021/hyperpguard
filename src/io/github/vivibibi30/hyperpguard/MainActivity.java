@@ -1175,6 +1175,8 @@ public class MainActivity extends Activity {
         global.addView(divider());
         addFraudDbRow(global);
         global.addView(divider());
+        addMisightRow(global);
+        global.addView(divider());
         addCustomRulesRow(global);
         global.addView(divider());
         addCleanLogRow(global);
@@ -1384,12 +1386,6 @@ public class MainActivity extends Activity {
         about.addView(linkRow("LSPosed 模块页", "modules.lsposed.org", URL_MODULE));
         about.addView(line());
         about.addView(linkRow("问题反馈", "Issues", URL_ISSUES));
-        about.addView(line());
-        ViewGroup misightRow = infoRow("被采集数据", "MiSight 事件库 · 只读");
-        misightRow.setClickable(true);
-        misightRow.setOnClickListener(v -> startActivity(
-                new android.content.Intent(this, MisightActivity.class)));
-        about.addView(misightRow);
         about.addView(infoRow("版本", "v" + Config.VERSION));
         Button checkUpdateBtn = new Button(this);
         checkUpdateBtn.setText("检查更新");
@@ -1703,21 +1699,28 @@ public class MainActivity extends Activity {
             stage.getLocationInWindow(pagerLoc);
             int dx = pagerLoc[0] - loc[0];
             int dy = pagerLoc[1] - loc[1];
-            // 降采样绘制，模糊后观感一致，开销小很多
-            int sw = Math.max(1, w / 4);
-            int sh = Math.max(1, h / 4);
+            // 降采样绘制：保留 1/2 细节，胶囊里的折射才看得出形变
+            int sw = Math.max(1, w / 2);
+            int sh = Math.max(1, h / 2);
             android.graphics.Bitmap small = android.graphics.Bitmap.createBitmap(sw, sh, android.graphics.Bitmap.Config.ARGB_8888);
             android.graphics.Canvas c = new android.graphics.Canvas(small);
-            c.scale(1f / 4f, 1f / 4f);
+            c.scale(1f / 2f, 1f / 2f);
             c.translate(-dx, -dy);
             stage.draw(c);
             android.graphics.Bitmap scaled = android.graphics.Bitmap.createScaledBitmap(small, w, h, true);
             small.recycle();
             glassBackdrop.setImageBitmap(scaled);
             if (tabPill != null) {
-                tabPill.setBackdrop(scaled);
-                tabPill.setSrcOffsetX(dp(4) + pillValue * barCellWidth()
+                /* 直接裁出胶囊背后那一块喂给玻璃球：RuntimeShader 的输入不走 localMatrix，
+                 * 传整条再平移会让胶囊采样到别的格子（表现是胶囊里一片空白）。 */
+                int left = Math.round(dp(4) + pillValue * barCellWidth()
                         + (barCellWidth() - pillWidth()) / 2f);
+                left = Math.max(0, Math.min(left, Math.max(0, scaled.getWidth() - 1)));
+                int pw = Math.max(1, Math.min(pillWidth(), scaled.getWidth() - left));
+                android.graphics.Bitmap slice = android.graphics.Bitmap.createBitmap(
+                        scaled, left, 0, pw, Math.max(1, scaled.getHeight()));
+                tabPill.setBackdrop(slice);
+                tabPill.setSrcOffsetX(0f);
             }
             if (android.os.Build.VERSION.SDK_INT >= 31) {
                 // 源码：blur(4.dp) + vibrancy()，不是大半径糊成一片
@@ -2327,12 +2330,12 @@ public class MainActivity extends Activity {
         row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
 
         TextView t1 = new TextView(this);
-        t1.setText("行为库状态");
+        t1.setText("安全中心行为库");
         t1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
         t1.setTextColor(TEXT);
 
         TextView t2 = new TextView(this);
-        t2.setText("读安全中心行为库的写入计数，用来判断拦截是否生效");
+        t2.setText("本机行为库写入计数，用来看拦截是否生效");
         t2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
         t2.setTextColor(SUB);
         t2.setPadding(0, dp(2), 0, 0);
@@ -2340,6 +2343,34 @@ public class MainActivity extends Activity {
         row.addView(t1);
         row.addView(t2);
         row.setOnClickListener(v -> showFraudDb());
+        parent.addView(row);
+    }
+
+    /** 与行为库同一张卡、同一版式：标题 16sp + 副标题 12sp，点开进入只读页 */
+    private void addMisightRow(LinearLayout parent) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setMinimumHeight(dp(56));
+        row.setPadding(0, dp(9), 0, dp(9));
+        row.setClickable(true);
+        row.setBackground(pressBackground());
+        row.setPadding(dp(4), row.getPaddingTop(), dp(4), row.getPaddingBottom());
+
+        TextView t1 = new TextView(this);
+        t1.setText("MiSight 事件库");
+        t1.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+        t1.setTextColor(TEXT);
+
+        TextView t2 = new TextView(this);
+        t2.setText("系统行为采集的事件库，只读查看触发场景与参数");
+        t2.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        t2.setTextColor(SUB);
+        t2.setPadding(0, dp(2), 0, 0);
+
+        row.addView(t1);
+        row.addView(t2);
+        row.setOnClickListener(v -> startActivity(
+                new android.content.Intent(this, MisightActivity.class)));
         parent.addView(row);
     }
 
@@ -2393,7 +2424,7 @@ public class MainActivity extends Activity {
         sv.addView(box);
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(T("行为库状态"))
+                .setTitle(T("安全中心行为库"))
                 .setView(sv)
                 .setNegativeButton(T("关闭"), null)
                 .create();
@@ -3325,34 +3356,40 @@ public class MainActivity extends Activity {
      */
     private static final class GlassPill extends android.view.View {
         /**
-         * 液态玻璃折射：中心轻微放大、边缘向外位移，对应 miuix lens() 的观感。
-         * 只在 API 33+（RuntimeShader）生效，低版本仍用直接贴模糊图。
+         * 液态玻璃折射：直接使用 miuix 的 AGSL（assets/lens_refraction.agsl），
+         * 按圆角矩形 SDF 在边缘带做位移 + 七次采样色散，和 KernelSU 底栏同一套。
+         * 只有 API 33+（RuntimeShader）生效，低版本回落直接贴模糊图。
          */
-        private static final String LENS_SHADER =
-                "uniform shader content;\n"
-                        + "uniform float2 size;\n"
-                        + "uniform float2 center;\n"
-                        + "uniform float zoom;\n"
-                        + "uniform float edge;\n"
-                        + "half4 main(float2 p) {\n"
-                        + "    float2 halfSize = max(size * 0.5, float2(1.0, 1.0));\n"
-                        + "    float2 d = p - center;\n"
-                        + "    float2 n = d / halfSize;\n"
-                        + "    float r = min(length(n), 1.0);\n"
-                        + "    float k = 1.0 + zoom * (1.0 - r * r);\n"
-                        + "    float2 q = center + d / k;\n"
-                        + "    float e = edge * smoothstep(0.7, 1.0, r) * 0.05;\n"
-                        + "    float len = max(length(d), 0.001);\n"
-                        + "    q += (d / len) * e * halfSize.y;\n"
-                        + "    half4 c = content.eval(q);\n"
-                        + "    float spec = 0.10 * (1.0 - r) * (1.0 - r);\n"
-                        + "    return c + half4(spec, spec, spec, 0.0);\n"
-                        + "}\n";
+        private static String lensSource;
+
+        private static String lensSource(android.content.Context c) {
+            if (lensSource == null) {
+                java.io.InputStream in = null;
+                try {
+                    in = c.getAssets().open("lens_refraction.agsl");
+                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+                    lensSource = out.toString("UTF-8");
+                } catch (Throwable t) {
+                    lensSource = "";
+                } finally {
+                    if (in != null) {
+                        try {
+                            in.close();
+                        } catch (Throwable ignored) {
+                        }
+                    }
+                }
+            }
+            return lensSource;
+        }
 
         private boolean night;
         private android.graphics.BitmapShader shader;
         private android.graphics.RuntimeShader lens;
-        private float lensStrength = 0.16f;
+        private boolean lensWarned;
         /** 玻璃厚度：左上高光 + 底部内阴影，尺寸变化时重建 */
         private android.graphics.RadialGradient sheen;
         private android.graphics.LinearGradient shade;
@@ -3411,18 +3448,32 @@ public class MainActivity extends Activity {
                 if (android.os.Build.VERSION.SDK_INT >= 33) {
                     try {
                         if (lens == null) {
-                            lens = new android.graphics.RuntimeShader(LENS_SHADER);
+                            String src = lensSource(getContext());
+                            if (!src.isEmpty()) {
+                                lens = new android.graphics.RuntimeShader(src);
+                            }
                         }
-                        lens.setInputShader("content", shader);
-                        lens.setFloatUniform("size", new float[]{w, h});
-                        lens.setFloatUniform("center", new float[]{w / 2f, h / 2f});
-                        lens.setFloatUniform("zoom", lensStrength);
-                        lens.setFloatUniform("edge", 1f);
-                        fill.setShader(lens);
-                        canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
-                        lensed = true;
-                    } catch (Throwable ignored) {
-                        // AGSL 不可用时退回直接贴模糊图
+                        if (lens != null) {
+                            lens.setInputShader("content", shader);
+                            lens.setFloatUniform("size", new float[]{w, h});
+                            lens.setFloatUniform("offset", new float[]{0f, 0f});
+                            lens.setFloatUniform("cornerRadii", new float[]{r, r, r, r});
+                            lens.setFloatUniform("refractionHeight",
+                                    Math.max(1f, Math.min(w, h) * 0.45f));
+                            lens.setFloatUniform("refractionAmount",
+                                    -Math.max(1f, h * 0.10f));
+                            lens.setFloatUniform("depthEffect", 1f);
+                            lens.setFloatUniform("chromaticAberration", 0.12f);
+                            fill.setShader(lens);
+                            canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
+                            lensed = true;
+                        }
+                    } catch (Throwable t) {
+                        // AGSL 不可用时退回直接贴模糊图；只记一次，避免每帧刷日志
+                        if (!lensWarned) {
+                            lensWarned = true;
+                            Logs.i("lens shader unavailable: " + t);
+                        }
                     }
                 }
                 if (!lensed) {
@@ -3436,11 +3487,11 @@ public class MainActivity extends Activity {
                 sheenH = h;
                 sheen = new android.graphics.RadialGradient(
                         w * 0.38f, h * 0.20f, Math.max(w, h) * 0.80f,
-                        new int[]{0x33FFFFFF, 0x0DFFFFFF, 0x00FFFFFF},
+                        new int[]{0x2EFFFFFF, 0x0AFFFFFF, 0x00FFFFFF},
                         new float[]{0f, 0.45f, 1f},
                         android.graphics.Shader.TileMode.CLAMP);
                 shade = new android.graphics.LinearGradient(0f, h * 0.55f, 0f, h,
-                        0x00000000, 0x24000000,
+                        0x00000000, 0x0F000000,
                         android.graphics.Shader.TileMode.CLAMP);
             }
             // 玻璃厚度：左上高光
@@ -3452,14 +3503,14 @@ public class MainActivity extends Activity {
 
             fill.setShader(null);
             // 源码 onDrawSurface：浅色 Black.copy(0.1f)，深色 White.copy(0.1f)
-            fill.setColor(night ? 0x1AFFFFFF : 0x1A000000);
+            fill.setColor(night ? 0x0AFFFFFF : 0x0A000000);
             canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
 
             float stroke = Math.max(1f, getResources().getDisplayMetrics().density);
             edge.setStyle(android.graphics.Paint.Style.STROKE);
             edge.setStrokeWidth(stroke);
             edge.setShader(new android.graphics.LinearGradient(0f, 0f, 0f, h,
-                    new int[]{0x99FFFFFF, 0x26FFFFFF, 0x0DFFFFFF, 0x66FFFFFF},
+                    new int[]{0xB3FFFFFF, 0x33FFFFFF, 0x14FFFFFF, 0x80FFFFFF},
                     new float[]{0f, 0.3f, 0.7f, 1f},
                     android.graphics.Shader.TileMode.CLAMP));
             float inset = stroke / 2f;
