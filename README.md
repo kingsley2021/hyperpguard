@@ -228,6 +228,7 @@ build.sh              一键构建
 - **[frauddb](https://github.com/acnekot/frauddb)**（acnekot，MIT）— 行为库的表结构、库路径与号码摘要算法
 - **[hyperos-dm-report](https://github.com/acxun/hyperos-dm-report)**（作者 [acxun](https://github.com/acxun)，文档 CC BY 4.0）— 运营商 DM 组件的上报链路与加密方式、诊断组件的事件日志域名；本文只引用其结论，未复制原文
 - **[misight-viewer](https://github.com/Artriai/misight-viewer)**（作者 [Artriai](https://github.com/Artriai)）— 诊断组件的数据库字段与事件分类、设备诊断与用户行为记录的区分依据
+- **[KernelSU](https://github.com/tiann/KernelSU)**（GPL-3.0，作者 [tiann](https://github.com/tiann) 与贡献者）— 悬浮底栏的尺寸、动效与按压时序参考其 manager 模块的公开实现，按参数重写
 - **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— 底栏的尺寸、动效与页面切换弹簧参数参考其公开示例，按参数重写；按 Apache-2.0 保留声明
 - **libxposed API**（Apache-2.0）、**LSPosed** — 模块入口与作用域接口
 
@@ -244,8 +245,6 @@ build.sh              一键构建
 - PR #29：开关热重载（改开关后不必重启，只重载受影响的组件；含批量触发与无目标时的提示）
 - Issue #22：定位到小米输入法击键统计经 OneTrack#track 发出，据此更正了文档里「未覆盖」的说法
 - Issue #28：给出 MiSight 触发场景与数据流向、拦截计数、导入导出、自检用 `getRunningTargets` 的完整清单
-
-其他参考：KernelSU（GPL-3.0）与 compose-miuix-ui / miuix（Apache-2.0）的公开实现，界面动效参数按公开代码对照重写；许可与来源见 [NOTICE](NOTICE)。
 
 ## 免责声明
 
