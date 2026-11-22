@@ -644,7 +644,7 @@ public class MainActivity extends Activity {
         pageScrolls.clear();
         pageScrolls.add(buildPage(stage, buildGeneralPage()));
         pageScrolls.add(buildPage(stage, buildComponentsPage()));
-        pageScrolls.add(buildPage(stage, buildAboutPage()));
+        pageScrolls.add(buildPage(stage, buildSettingsPage()));
         stage.setPageCount(pageScrolls.size());
         // 深浅色切换会重建界面，必须把当前页还原回去，否则会跳回第一页
         stage.resetTo(currentTab);
@@ -674,7 +674,7 @@ public class MainActivity extends Activity {
         tabViews.clear();
         tabIcons.clear();
         tabLabels.clear();
-        String[] names = new String[]{T("主页"), T("组件拦截"), T("关于")};
+        String[] names = new String[]{T("主页"), T("组件拦截"), T("设置")};
         for (int i = 0; i < names.length; i++) {
             final int idx = i;
             LinearLayout tab = new LinearLayout(this);
@@ -1194,17 +1194,6 @@ public class MainActivity extends Activity {
         addMisightRow(global);
         global.addView(divider());
         addCustomRulesRow(global);
-        global.addView(divider());
-        addCleanLogRow(global);
-        global.addView(divider());
-        addHideIconRow(global);
-        TextView rootTip = new TextView(this);
-        rootTip.setText("「重启」「查看日志」需要 root，首次使用请允许 KernelSU 授权");
-        rootTip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
-        rootTip.setTextColor(SUB);
-        rootTip.setPadding(0, dp(8), 0, 0);
-        global.addView(rootTip);
-        global.addView(buttonRow());
         root.addView(global);
 
         return root;
@@ -1393,9 +1382,32 @@ public class MainActivity extends Activity {
     }
 
     /** 关于：仓库、模块页、反馈、版本、更新与免责声明 */
-    private LinearLayout buildAboutPage() {
+    private LinearLayout buildSettingsPage() {
         LinearLayout root = pageRoot();
-        root.addView(pageTitle("关于"));
+        root.addView(pageTitle("设置"));
+
+        LinearLayout actions = card();
+        addHideIconRow(actions);
+        actions.addView(divider());
+        addCleanLogRow(actions);
+        actions.addView(divider());
+        actions.addView(actionRow("查看日志", () -> loadLog(false)));
+        actions.addView(divider());
+        actions.addView(actionRow("分享日志", () -> loadLog(true)));
+        root.addView(actions);
+
+        LinearLayout diag = card();
+        diag.addView(singleButton("自检", () -> showDiagnostics()));
+        root.addView(diag);
+
+        LinearLayout cfg = card();
+        ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
+        cfgRow.setClickable(true);
+        cfgRow.setOnClickListener(v -> showConfigIO());
+        cfg.addView(cfgRow);
+        root.addView(cfg);
+
+        root.addView(sectionRow("关于", "版本与反馈"));
         LinearLayout about = card();
         about.addView(linkRow("GitHub 仓库", "vivibibi30/hyperpguard", URL_REPO));
         about.addView(line());
@@ -1403,10 +1415,6 @@ public class MainActivity extends Activity {
         about.addView(line());
         about.addView(linkRow("问题反馈", "Issues", URL_ISSUES));
         about.addView(line());
-        ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
-        cfgRow.setClickable(true);
-        cfgRow.setOnClickListener(v -> showConfigIO());
-        about.addView(cfgRow);
         about.addView(infoRow("版本", "v" + Config.VERSION));
         Button checkUpdateBtn = new Button(this);
         checkUpdateBtn.setText("检查更新");
@@ -1431,6 +1439,29 @@ public class MainActivity extends Activity {
         disclaimer.setOnClickListener(v -> showDisclaimer());
         root.addView(disclaimer);
         return root;
+    }
+
+    /** 整行一个动作按钮：和组件页的批量按钮同一版式 */
+    private TextView singleButton(String label, Runnable onClick) {
+        TextView b = new TextView(this);
+        b.setText(label);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
+        b.setTextColor(ACCENT);
+        b.setGravity(Gravity.CENTER);
+        b.setBackground(pressBackground());
+        b.setPadding(0, dp(12), 0, dp(12));
+        b.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        b.setOnClickListener(v -> onClick.run());
+        return b;
+    }
+
+    /** 与 linkRow 同规格的可点击行，右侧不显示链接 */
+    private ViewGroup actionRow(String label, Runnable onClick) {
+        ViewGroup row = infoRow(label, "");
+        row.setClickable(true);
+        row.setOnClickListener(v -> onClick.run());
+        return row;
     }
 
     /** 服务未连接时暂存的动作，绑定成功后自动执行一次 */
@@ -3806,28 +3837,33 @@ public class MainActivity extends Activity {
                 }
                 canvas.drawPath(body, paint);
             } else {
-                float r = s * 0.38f;
+                // 齿轮：8 个齿 + 中心孔
+                float R = s * 0.34f;
+                float r0 = s * 0.24f;
+                float hole = s * 0.10f;
+                android.graphics.Path gear = new android.graphics.Path();
+                gear.addCircle(cx, cy, r0, android.graphics.Path.Direction.CW);
+                for (int i2 = 0; i2 < 8; i2++) {
+                    android.graphics.Path tooth = new android.graphics.Path();
+                    tooth.addRoundRect(new android.graphics.RectF(
+                            cx - s * 0.075f, cy - R,
+                            cx + s * 0.075f, cy - r0 + s * 0.02f),
+                            s * 0.02f, s * 0.02f, android.graphics.Path.Direction.CW);
+                    android.graphics.Matrix m = new android.graphics.Matrix();
+                    m.setRotate(i2 * 45f, cx, cy);
+                    tooth.transform(m);
+                    gear.op(tooth, android.graphics.Path.Op.UNION);
+                }
+                android.graphics.Path holePath = new android.graphics.Path();
+                holePath.addCircle(cx, cy, hole, android.graphics.Path.Direction.CW);
+                gear.op(holePath, android.graphics.Path.Op.DIFFERENCE);
                 if (filled) {
-                    android.graphics.Path circle = new android.graphics.Path();
-                    circle.addCircle(cx, cy, r, android.graphics.Path.Direction.CW);
-                    android.graphics.Path bar = new android.graphics.Path();
-                    bar.addRect(cx - s * 0.045f, cy - s * 0.20f,
-                            cx + s * 0.045f, cy + s * 0.08f, android.graphics.Path.Direction.CW);
-                    android.graphics.Path dot = new android.graphics.Path();
-                    dot.addCircle(cx, cy + s * 0.20f, s * 0.05f, android.graphics.Path.Direction.CW);
-                    circle.op(bar, android.graphics.Path.Op.DIFFERENCE);
-                    circle.op(dot, android.graphics.Path.Op.DIFFERENCE);
                     paint.setStyle(android.graphics.Paint.Style.FILL);
-                    canvas.drawPath(circle, paint);
                 } else {
                     paint.setStyle(android.graphics.Paint.Style.STROKE);
-                    paint.setStrokeWidth(s * 0.085f);
-                    canvas.drawCircle(cx, cy, r, paint);
-                    paint.setStyle(android.graphics.Paint.Style.FILL);
-                    canvas.drawRect(cx - s * 0.045f, cy - s * 0.20f,
-                            cx + s * 0.045f, cy + s * 0.08f, paint);
-                    canvas.drawCircle(cx, cy + s * 0.20f, s * 0.05f, paint);
+                    paint.setStrokeWidth(s * 0.075f);
                 }
+                canvas.drawPath(gear, paint);
             }
         }
     }
