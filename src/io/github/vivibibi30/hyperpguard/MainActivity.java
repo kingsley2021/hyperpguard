@@ -1403,7 +1403,7 @@ public class MainActivity extends Activity {
         actions.addView(cfgRow);
         root.addView(actions);
 
-        root.addView(sectionRow("关于", "版本与反馈"));
+        root.addView(sectionRow("关于", ""));
         LinearLayout about = card();
         about.addView(linkRow("GitHub 仓库", "vivibibi30/hyperpguard", URL_REPO));
         about.addView(line());
