@@ -31,14 +31,13 @@ After an in-place upgrade, LSPosed does **not** automatically add newly declared
 
 ## Usage
 
-<p align="center">
-  <img alt="Main screen: global switches and the floating bottom bar" src="docs/images/ui-home.png" width="420">
-</p>
-
 
 - **Group switch**: the toggle in the card header mirrors that package's LSPosed scope state. Turning it on requests scope through the framework API; if the framework refuses, a dialog explains what to tick manually.
 - **Sub-switches**: "on" means the behaviour is blocked. Rules that can affect system features default to off, and the subtitle states the cost.
+- **Hot reload**: changing a switch no longer needs a restart. The module asks the framework to hot-reload the injected processes (libxposed API 102), only those affected. The "Hot reload" switch on the home page can turn this off and fall back to manual restart.
 - **Restart**: applies `am force-stop` to the target package so it reloads with the new rules. System components are usually restarted by the system within seconds.
+- **Data self-check**: the home page shows the Security Center behaviour-DB write counter and a read-only MiSight event DB browser (needs root; copies the DB, queries it, then deletes the copy; nothing is exported).
+- **Settings page**: view/share logs (with a per-host block summary), clear the log buffer, hide the launcher icon, import/export the config; the About section (repo, LSPosed page, issues, version, update check) sits at the bottom.
 - **Custom rules**: append extra blocking by domain, `domain/path`, or `class#method`. See [docs/CUSTOM-RULES.md](docs/CUSTOM-RULES.md) (Chinese).
 - **Log unblocked hosts**: records hosts that matched no rule, for finding missing rules; keep it off normally.
 

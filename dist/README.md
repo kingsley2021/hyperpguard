@@ -6,7 +6,7 @@
 ![language](https://img.shields.io/badge/language-Java-orange)
 ![release](https://img.shields.io/github/v/release/vivibibi30/hyperpguard?label=release&color=green)
 
-在采集入口、本地存储、对外接口、网络出口四个层面，按应用给行为加开关
+按应用控制网络、存储、接口、采集四类行为的 LSPosed 模块，纯本地运行
 
 </div>
 
@@ -42,8 +42,6 @@ Android 10 – Android 16（对应平台），LSPosed 2.2.x（模块依赖 libxp
 - 需要精确拦截范围时，请在自己的设备上对照界面里每个开关的描述；本页不列举具体包名
 
 ## 界面
-
-![主界面：总开关、路径特征、记录未命中访问](https://raw.githubusercontent.com/vivibibi30/hyperpguard/main/docs/images/ui-home.png)
 
 ## 常见问题
 

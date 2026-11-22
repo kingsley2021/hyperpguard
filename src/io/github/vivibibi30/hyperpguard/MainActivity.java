@@ -232,7 +232,7 @@ public class MainActivity extends Activity {
     private AlertDialog shownDialog;
     private int appliedNight = -1;
     /** DISCLAIMER.txt 的版本号，变了就重新弹一次确认 */
-    private static final int DISCLAIMER_VER = 16;
+    private static final int DISCLAIMER_VER = 17;
     private int restoreScrollY;
     final Handler ui = new Handler(Looper.getMainLooper());
     private XposedService xposed;
