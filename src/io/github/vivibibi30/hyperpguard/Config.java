@@ -20,6 +20,8 @@ public final class Config {
     public static final String K_MASTER = "master";
     public static final String K_PATH = "block_path_markers";
     public static final String K_SNIFF = "sniff_all";
+    /** 改开关后是否自动热重载；关掉则回到「手动重启」流程 */
+    public static final String K_HOT_RELOAD = "hot_reload";
     /** 自定义规则：域名 或 域名/路径，多条用 ;; 分隔 */
     public static final String K_CUSTOM = "custom_rules";
 
@@ -205,6 +207,7 @@ public final class Config {
         DEFAULTS.put(K_MASTER, true);
         DEFAULTS.put(K_PATH, true);
         DEFAULTS.put(K_SNIFF, false);
+        DEFAULTS.put(K_HOT_RELOAD, true);
 
         // 敏感数据：按应用独立，默认全部关闭
         DEFAULTS.put(K_LOC_SH, false);
@@ -573,10 +576,17 @@ public final class Config {
      * 缓存还在就会一直用旧开关，所以这里显式清空。
      */
     public static void reload(android.content.Context ctx) {
+        java.util.Map<String, Boolean> old = new java.util.HashMap<>(REMOTE);
+        String oldCustom = CUSTOM;
         REMOTE.clear();
         CUSTOM = "";
         invalidateCache();
         load(ctx);
+        // 读不到（权限/瞬时失败）时保留旧值，避免热重载把用户关掉的规则又打开
+        if (REMOTE.isEmpty() && !old.isEmpty()) {
+            REMOTE.putAll(old);
+            CUSTOM = oldCustom;
+        }
     }
 
     private static void loadFromSettings(android.content.Context ctx) {

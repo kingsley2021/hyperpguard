@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
         GradientDrawable glass = new GradientDrawable();
         // 半透明底 + 下层的模糊位图 → 视觉上是液态玻璃；不透明会盖掉模糊
         // surfaceContainer.copy(0.4f)：40% 不透明，剩下的交给下层的模糊位图
-        glass.setColor(nightMode ? 0x4A211F26 : 0x4AF3EDF7);
+        glass.setColor(nightMode ? 0x38211F26 : 0x38F3EDF7);
         glass.setCornerRadius(dp(32));       // CircleShape 等价：64dp 高的一半
         barShell.setBackground(glass);
         barShell.setPadding(dp(4), dp(4), dp(4), dp(4));
@@ -1187,6 +1187,9 @@ public class MainActivity extends Activity {
         makeSwitchRow(global, "记录未命中访问", "把没命中规则的域名写进日志，排查漏拦时临时打开",
                 Config.K_SNIFF, true);
         global.addView(divider());
+        makeSwitchRow(global, "开关热重载", "改开关后自动让已注入的进程换新配置；关闭则需手动重启",
+                Config.K_HOT_RELOAD, true);
+        global.addView(divider());
         addFraudDbRow(global);
         global.addView(divider());
         addMisightRow(global);
@@ -1401,6 +1404,11 @@ public class MainActivity extends Activity {
         about.addView(linkRow("LSPosed 模块页", "modules.lsposed.org", URL_MODULE));
         about.addView(line());
         about.addView(linkRow("问题反馈", "Issues", URL_ISSUES));
+        about.addView(line());
+        ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
+        cfgRow.setClickable(true);
+        cfgRow.setOnClickListener(v -> showConfigIO());
+        about.addView(cfgRow);
         about.addView(infoRow("版本", "v" + Config.VERSION));
         Button checkUpdateBtn = new Button(this);
         checkUpdateBtn.setText("检查更新");
@@ -2720,6 +2728,26 @@ public class MainActivity extends Activity {
                 } catch (Throwable ignored) {
                 }
                 boolean master = Config.get(MainActivity.this, Config.K_MASTER, Config.def(Config.K_MASTER));
+                sb.append("\n框架运行中的目标（getRunningTargets）：\n");
+                try {
+                    java.util.List<io.github.libxposed.service.HookedTarget> targets =
+                            xposed == null ? null : xposed.getRunningTargets();
+                    if (targets == null || targets.isEmpty()) {
+                        sb.append("（服务未连接，或当前没有运行中的目标）\n");
+                    } else {
+                        java.util.List<String> names = new java.util.ArrayList<>();
+                        for (io.github.libxposed.service.HookedTarget t : targets) {
+                            String n = t.getProcessName();
+                            if (n != null) names.add(n);
+                        }
+                        java.util.Collections.sort(names);
+                        sb.append(names.size()).append(" 个进程：\n");
+                        for (String n : names) sb.append("· ").append(n).append('\n');
+                    }
+                } catch (Throwable t) {
+                    sb.append("读取失败：").append(t).append('\n');
+                }
+
                 sb.append("\n总开关：").append(master ? "已开启" : "已关闭（所有进程都会跳过安装）");
                 sb.append("\n本地开关 ").append(local).append(" 项，系统设置 ").append(remote).append(" 项\n");
 
@@ -2895,6 +2923,7 @@ public class MainActivity extends Activity {
      * 作用域变化不走这里：新加入的作用域要等进程重新启动才会注入。
      */
     private void scheduleHotReload(String pkg) {
+        if (!Config.get(this, Config.K_HOT_RELOAD, Config.def(Config.K_HOT_RELOAD))) return;
         if (pkg == null || pkg.isEmpty()) hotReloadAll = true;
         else hotReloadPkgs.add(pkg);
         ui.removeCallbacks(hotReloadTask);
@@ -2954,10 +2983,10 @@ public class MainActivity extends Activity {
         } else if (failed == 0) {
             msg = "已热重载 " + done + " 个进程，开关立即生效";
         } else if (done == 0) {
-            msg = "热重载失败（" + failed + " 个进程），请用「重启」"
+            msg = "热重载未成功（" + failed + " 个进程，含超时未回执），请用「重启」"
                     + (message == null ? "" : "：" + message);
         } else {
-            msg = "已热重载 " + done + " 个进程，" + failed + " 个失败，可用「重启」重试"
+            msg = "已热重载 " + done + " 个进程，" + failed + " 个未回执或失败，可用「重启」重试"
                     + (message == null ? "" : "：" + message);
         }
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
@@ -2999,9 +3028,41 @@ public class MainActivity extends Activity {
         return out;
     }
 
+    /** 从日志行里聚合「哪个域名被拦了几次」「多少次 hook miss」，不落库 */
+    private String blockStats(String log) {
+        java.util.Map<String, Integer> hosts = new java.util.LinkedHashMap<>();
+        int miss = 0;
+        for (String l : log.split("\n")) {
+            int i = l.indexOf("blocked by HyperPGuard: ");
+            if (i >= 0) {
+                String h = l.substring(i + 25).trim();
+                int sp = h.indexOf(' ');
+                if (sp > 0) h = h.substring(0, sp);
+                Integer c = hosts.get(h);
+                hosts.put(h, c == null ? 1 : c + 1);
+            } else if (l.contains("hook miss")) {
+                miss++;
+            }
+        }
+        if (hosts.isEmpty() && miss == 0) return "";
+        StringBuilder out = new StringBuilder("拦截统计（当前日志范围）：\n");
+        java.util.List<java.util.Map.Entry<String, Integer>> list =
+                new java.util.ArrayList<>(hosts.entrySet());
+        list.sort((a, b) -> b.getValue() - a.getValue());
+        int n = 0;
+        for (java.util.Map.Entry<String, Integer> e : list) {
+            if (n++ >= 8) break;
+            out.append("· ").append(e.getKey()).append(" × ").append(e.getValue()).append('\n');
+        }
+        if (miss > 0) out.append("hook miss：").append(miss).append(" 条\n");
+        out.append('\n');
+        return out.toString();
+    }
+
     private void showLog(final String log) {
         String body = "改动开关后会自动热重载已注入的进程；提示热重载失败时，"
-                + "再点该组右上角「重启」或批量行的「全部重启」。\n\n" + classify(log);
+                + "再点该组右上角「重启」或批量行的「全部重启」。\n\n"
+                + blockStats(log) + classify(log);
         showText("模块日志（" + log.split("\n").length + " 行）", body);
     }
 
@@ -3205,6 +3266,109 @@ public class MainActivity extends Activity {
     }
 
     /** 只在用户点击时请求一次 GitHub API 取最新 tag，不做后台轮询 */
+    private void showConfigIO() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(8), dp(20), dp(8));
+        TextView tip = new TextView(this);
+        tip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
+        tip.setTextColor(SUB);
+        tip.setText("导出：把当前开关与作用域清单写成文本存到 Download。\n"
+                + "导入：从剪贴板读取同一格式，校验后写回并热重载。\n"
+                + "文本是明文，含自定义规则里的域名，分享前注意。");
+        box.addView(tip);
+        TextView exp = new TextView(this);
+        exp.setText("导出到 Download");
+        exp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        exp.setTextColor(ACCENT);
+        exp.setPadding(0, dp(14), 0, dp(14));
+        exp.setOnClickListener(v -> exportConfig());
+        box.addView(exp);
+        TextView imp = new TextView(this);
+        imp.setText("从剪贴板导入");
+        imp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        imp.setTextColor(ACCENT);
+        imp.setPadding(0, dp(4), 0, dp(14));
+        imp.setOnClickListener(v -> importConfig());
+        box.addView(imp);
+        new AlertDialog.Builder(this)
+                .setTitle("配置导入导出")
+                .setView(box)
+                .setNegativeButton("关闭", null)
+                .show();
+    }
+
+    private void exportConfig() {
+        new Thread(() -> {
+            String raw = "";
+            try {
+                raw = android.provider.Settings.Global.getString(
+                        getContentResolver(), Config.GLOBAL_KEY);
+            } catch (Throwable ignored) {
+            }
+            java.util.List<String> scope = safeScope();
+            String content = "# HyperPGuard " + Config.VERSION + " 配置备份\n"
+                    + "# 作用域：" + (scope == null ? "读取失败" : scope.toString()) + "\n"
+                    + (raw == null ? "" : raw) + "\n";
+            String b64 = android.util.Base64.encodeToString(
+                    content.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+                    android.util.Base64.NO_WRAP);
+            String path = "/sdcard/Download/hyperpguard-" + Config.VERSION + "-config.txt";
+            String out = execShell("echo '" + b64 + "' | base64 -d > " + path
+                    + " && chmod 644 " + path + " && echo ok");
+            final boolean ok = out.contains("ok");
+            ui.post(() -> Toast.makeText(this,
+                    ok ? "已导出到 " + path : "导出失败：" + out.trim(),
+                    Toast.LENGTH_LONG).show());
+        }, "hyperpguard-export").start();
+    }
+
+    private void importConfig() {
+        final CharSequence cs = clipboardText();
+        if (cs == null || cs.length() == 0) {
+            Toast.makeText(this, "剪贴板是空的", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String raw = null;
+        for (String l : cs.toString().split("\n")) {
+            String t = l.trim();
+            if (t.startsWith("#") || !t.contains("=")) continue;
+            raw = t;
+        }
+        if (raw == null) {
+            Toast.makeText(this, "没有找到 key=value 配置行", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        int applied = 0;
+        for (String kv : raw.split("\\|")) {
+            int i = kv.indexOf('=');
+            if (i <= 0) continue;
+            String k = kv.substring(0, i).trim();
+            String v = kv.substring(i + 1).trim();
+            if (Config.K_CUSTOM.equals(k)) {
+                Config.setCustomRules(this, v);
+                applied++;
+            } else {
+                Config.uiSet(this, k, "true".equals(v));
+                applied++;
+            }
+        }
+        Toast.makeText(this, "已导入 " + applied + " 项，正在热重载", Toast.LENGTH_SHORT).show();
+        scheduleHotReload(null);
+    }
+
+    private CharSequence clipboardText() {
+        try {
+            android.content.ClipboardManager cm =
+                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            if (cm == null || cm.getPrimaryClip() == null
+                    || cm.getPrimaryClip().getItemCount() == 0) return null;
+            return cm.getPrimaryClip().getItemAt(0).coerceToText(this);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     private void checkUpdate() {
         Toast.makeText(this, "正在检查更新…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
@@ -3640,7 +3804,7 @@ public class MainActivity extends Activity {
 
             fill.setShader(null);
             // 源码 onDrawSurface：浅色 Black.copy(0.1f)，深色 White.copy(0.1f)
-            fill.setColor(night ? 0x0DFFFFFF : 0x0D000000);
+            fill.setColor(0x14FFFFFF);   // 白色玻璃：靠描边与阴影区分，而不是靠灰色
             canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
 
             float stroke = Math.max(1f, getResources().getDisplayMetrics().density);
