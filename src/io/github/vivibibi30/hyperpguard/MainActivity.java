@@ -2168,9 +2168,9 @@ public class MainActivity extends Activity {
 
     /* ---------------- 自定义规则 ---------------- */
 
-    /** 主页的「自检」：与自定义规则同一版式的一行 */
+    /** 主页的「自检」：蓝色文字、居中的整行按钮 */
     private void addSelfCheckRow(LinearLayout parent) {
-        addListRow(parent, "自检", "核对注入、作用域与框架运行中的目标", () -> showDiagnostics());
+        parent.addView(singleButton("自检", () -> showDiagnostics()));
     }
 
     /** 列表行：标题 16sp + 副标题 12sp，与「清理日志缓冲」等完全同一版式 */
