@@ -643,7 +643,7 @@ public class MainActivity extends Activity {
         GradientDrawable glass = new GradientDrawable();
         // 半透明底 + 下层的模糊位图 → 视觉上是液态玻璃；不透明会盖掉模糊
         // surfaceContainer.copy(0.4f)：40% 不透明，剩下的交给下层的模糊位图
-        glass.setColor(nightMode ? 0x66211F26 : 0x66F3EDF7);
+        glass.setColor(nightMode ? 0x4A211F26 : 0x4AF3EDF7);
         glass.setCornerRadius(dp(32));       // CircleShape 等价：64dp 高的一半
         barShell.setBackground(glass);
         barShell.setPadding(dp(4), dp(4), dp(4), dp(4));
@@ -1727,7 +1727,7 @@ public class MainActivity extends Activity {
             }
             if (android.os.Build.VERSION.SDK_INT >= 31) {
                 // 源码：blur(4.dp) + vibrancy()，不是大半径糊成一片
-                float r = 4f * getResources().getDisplayMetrics().density;
+                float r = 8f * getResources().getDisplayMetrics().density;
                 android.graphics.RenderEffect blur =
                         android.graphics.RenderEffect.createBlurEffect(
                                 r, r, android.graphics.Shader.TileMode.CLAMP);
@@ -3544,14 +3544,14 @@ public class MainActivity extends Activity {
 
             fill.setShader(null);
             // 源码 onDrawSurface：浅色 Black.copy(0.1f)，深色 White.copy(0.1f)
-            fill.setColor(night ? 0x1AFFFFFF : 0x1A000000);
+            fill.setColor(night ? 0x0DFFFFFF : 0x0D000000);
             canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
 
             float stroke = Math.max(1f, getResources().getDisplayMetrics().density);
             edge.setStyle(android.graphics.Paint.Style.STROKE);
             edge.setStrokeWidth(stroke);
             edge.setShader(new android.graphics.LinearGradient(0f, 0f, 0f, h,
-                    new int[]{0xB3FFFFFF, 0x33FFFFFF, 0x14FFFFFF, 0x80FFFFFF},
+                    new int[]{0xE6FFFFFF, 0x59FFFFFF, 0x26FFFFFF, 0xB3FFFFFF},
                     new float[]{0f, 0.3f, 0.7f, 1f},
                     android.graphics.Shader.TileMode.CLAMP));
             float inset = stroke / 2f;
@@ -3587,6 +3587,14 @@ public class MainActivity extends Activity {
                     android.graphics.Shader.TileMode.CLAMP));
             float r = Math.max(0f, radius - inset);
             canvas.drawRoundRect(inset, inset, w - inset, h - inset, r, r, paint);
+            // 内阴影：上沿内侧提亮、下沿内侧压暗，白底上也能看出玻璃厚度
+            paint.setStyle(android.graphics.Paint.Style.FILL);
+            paint.setShader(new android.graphics.LinearGradient(0f, 0f, 0f, h,
+                    new int[]{0x26FFFFFF, 0x00FFFFFF, 0x00000000, 0x1A000000},
+                    new float[]{0f, 0.28f, 0.62f, 1f},
+                    android.graphics.Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(inset, inset, w - inset, h - inset,
+                    Math.max(0f, r - inset), Math.max(0f, r - inset), paint);
         }
     }
 
