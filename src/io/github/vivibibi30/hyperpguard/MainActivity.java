@@ -49,9 +49,9 @@ public class MainActivity extends Activity {
     private int BG = 0xFFF2F3F5;
     private int CARD = 0xFFFFFFFF;
     private int TEXT = 0xFF1A1A1A;
-    private int SUB = 0xFF8A8A8E;
+    int SUB = 0xFF8A8A8E;
     private int LINE = 0xFFEFEFF0;
-    private static final int ACCENT = 0xFF3478F6;
+    static final int ACCENT = 0xFF3478F6;
     private boolean nightMode;
 
     private static final String URL_REPO = "https://github.com/vivibibi30/hyperpguard";
@@ -233,7 +233,7 @@ public class MainActivity extends Activity {
     /** DISCLAIMER.txt 的版本号，变了就重新弹一次确认 */
     private static final int DISCLAIMER_VER = 16;
     private int restoreScrollY;
-    private final Handler ui = new Handler(Looper.getMainLooper());
+    final Handler ui = new Handler(Looper.getMainLooper());
     private XposedService xposed;
     private boolean updatingSwitch = false;
     private int bindRetry = 0;
@@ -1110,7 +1110,7 @@ public class MainActivity extends Activity {
         actions.addView(divider());
         ViewGroup cfgRow = infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
         cfgRow.setClickable(true);
-        cfgRow.setOnClickListener(v -> showConfigIO());
+        cfgRow.setOnClickListener(v -> ConfigIO.show(this));
         actions.addView(cfgRow);
         root.addView(actions);
 
@@ -1533,7 +1533,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private java.util.List<String> safeScope() {
+    java.util.List<String> safeScope() {
         if (xposed == null) return null;
         try {
             java.util.List<String> sc = xposed.getScope();
@@ -2515,7 +2515,7 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    private String execShell(String cmd) {
+    String execShell(String cmd) {
         Process p = null;
         try {
             p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
@@ -2655,7 +2655,7 @@ public class MainActivity extends Activity {
      * 否则只重载该组件自己的进程——改一个开关不该让十几个进程一起重扫。
      * 作用域变化不走这里：新加入的作用域要等进程重新启动才会注入。
      */
-    private void scheduleHotReload(String pkg) {
+    void scheduleHotReload(String pkg) {
         if (!Config.get(this, Config.K_HOT_RELOAD, Config.def(Config.K_HOT_RELOAD))) return;
         if (pkg == null || pkg.isEmpty()) hotReloadAll = true;
         else hotReloadPkgs.add(pkg);
@@ -2999,109 +2999,6 @@ public class MainActivity extends Activity {
     }
 
     /** 只在用户点击时请求一次 GitHub API 取最新 tag，不做后台轮询 */
-    private void showConfigIO() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(20), dp(8), dp(20), dp(8));
-        TextView tip = new TextView(this);
-        tip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
-        tip.setTextColor(SUB);
-        tip.setText("导出：把当前开关与作用域清单写成文本存到 Download。\n"
-                + "导入：从剪贴板读取同一格式，校验后写回并热重载。\n"
-                + "文本是明文，含自定义规则里的域名，分享前注意。");
-        box.addView(tip);
-        TextView exp = new TextView(this);
-        exp.setText("导出到 Download");
-        exp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        exp.setTextColor(ACCENT);
-        exp.setPadding(0, dp(14), 0, dp(14));
-        exp.setOnClickListener(v -> exportConfig());
-        box.addView(exp);
-        TextView imp = new TextView(this);
-        imp.setText("从剪贴板导入");
-        imp.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
-        imp.setTextColor(ACCENT);
-        imp.setPadding(0, dp(4), 0, dp(14));
-        imp.setOnClickListener(v -> importConfig());
-        box.addView(imp);
-        new AlertDialog.Builder(this)
-                .setTitle("配置导入导出")
-                .setView(box)
-                .setNegativeButton("关闭", null)
-                .show();
-    }
-
-    private void exportConfig() {
-        new Thread(() -> {
-            String raw = "";
-            try {
-                raw = android.provider.Settings.Global.getString(
-                        getContentResolver(), Config.GLOBAL_KEY);
-            } catch (Throwable ignored) {
-            }
-            java.util.List<String> scope = safeScope();
-            String content = "# HyperPGuard " + Config.VERSION + " 配置备份\n"
-                    + "# 作用域：" + (scope == null ? "读取失败" : scope.toString()) + "\n"
-                    + (raw == null ? "" : raw) + "\n";
-            String b64 = android.util.Base64.encodeToString(
-                    content.getBytes(java.nio.charset.StandardCharsets.UTF_8),
-                    android.util.Base64.NO_WRAP);
-            String path = "/sdcard/Download/hyperpguard-" + Config.VERSION + "-config.txt";
-            String out = execShell("echo '" + b64 + "' | base64 -d > " + path
-                    + " && chmod 644 " + path + " && echo ok");
-            final boolean ok = out.contains("ok");
-            ui.post(() -> Toast.makeText(this,
-                    ok ? "已导出到 " + path : "导出失败：" + out.trim(),
-                    Toast.LENGTH_LONG).show());
-        }, "hyperpguard-export").start();
-    }
-
-    private void importConfig() {
-        final CharSequence cs = clipboardText();
-        if (cs == null || cs.length() == 0) {
-            Toast.makeText(this, "剪贴板是空的", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        String raw = null;
-        for (String l : cs.toString().split("\n")) {
-            String t = l.trim();
-            if (t.startsWith("#") || !t.contains("=")) continue;
-            raw = t;
-        }
-        if (raw == null) {
-            Toast.makeText(this, "没有找到 key=value 配置行", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        int applied = 0;
-        for (String kv : raw.split("\\|")) {
-            int i = kv.indexOf('=');
-            if (i <= 0) continue;
-            String k = kv.substring(0, i).trim();
-            String v = kv.substring(i + 1).trim();
-            if (Config.K_CUSTOM.equals(k)) {
-                Config.setCustomRules(this, v);
-                applied++;
-            } else {
-                Config.uiSet(this, k, "true".equals(v));
-                applied++;
-            }
-        }
-        Toast.makeText(this, "已导入 " + applied + " 项，正在热重载", Toast.LENGTH_SHORT).show();
-        scheduleHotReload(null);
-    }
-
-    private CharSequence clipboardText() {
-        try {
-            android.content.ClipboardManager cm =
-                    (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-            if (cm == null || cm.getPrimaryClip() == null
-                    || cm.getPrimaryClip().getItemCount() == 0) return null;
-            return cm.getPrimaryClip().getItemAt(0).coerceToText(this);
-        } catch (Throwable t) {
-            return null;
-        }
-    }
-
     private void checkUpdate() {
         Toast.makeText(this, "正在检查更新…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
@@ -3378,7 +3275,7 @@ public class MainActivity extends Activity {
      * 对应 KernelSU 的 drawBackdrop(shape = pillShape) + onDrawSurface(drawRect)。
      * 源码里那个胶囊是有实感的玻璃，因为背后内容被折射进来；纯色块做不到。
      */
-    private int dp(int v) {
+    int dp(int v) {
         return (int) (v * getResources().getDisplayMetrics().density + 0.5f);
     }
 }
