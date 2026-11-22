@@ -1157,13 +1157,7 @@ public class MainActivity extends Activity {
     /** 整行一个动作按钮：和组件页的批量按钮同一版式 */
 
 
-    /** 与 linkRow 同规格的可点击行，右侧不显示链接 */
-    private ViewGroup actionRow(String label, Runnable onClick) {
-        ViewGroup row = kit.infoRow(label, "");
-        row.setClickable(true);
-        row.setOnClickListener(v -> onClick.run());
-        return row;
-    }
+
 
     /** 服务未连接时暂存的动作，绑定成功后自动执行一次 */
     private Runnable pendingAction;
@@ -2288,50 +2282,7 @@ public class MainActivity extends Activity {
         parent.addView(row);
     }
 
-    private ViewGroup buttonRow() {
-        LinearLayout row = new LinearLayout(this);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setMinimumHeight(dp(56));
-        row.setPadding(0, dp(9), 0, dp(9));
 
-        TextView view = new TextView(this);
-        view.setText("查看日志");
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        view.setTextColor(ACCENT);
-        view.setGravity(Gravity.CENTER);
-        view.setBackground(kit.pressBackground());
-        view.setPadding(0, dp(10), 0, dp(10));
-        view.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        view.setOnClickListener(v -> loadLog(false));
-        row.addView(view);
-
-        TextView share = new TextView(this);
-        share.setText("分享日志");
-        share.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        share.setTextColor(ACCENT);
-        share.setGravity(Gravity.CENTER);
-        share.setBackground(kit.pressBackground());
-        share.setPadding(0, dp(10), 0, dp(10));
-        share.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        share.setOnClickListener(v -> loadLog(true));
-        row.addView(share);
-
-        TextView diag = new TextView(this);
-        diag.setText("自检");
-        diag.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
-        diag.setTextColor(ACCENT);
-        diag.setGravity(Gravity.CENTER);
-        diag.setBackground(kit.pressBackground());
-        diag.setPadding(0, dp(10), 0, dp(10));
-        diag.setLayoutParams(new LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-        diag.setOnClickListener(v -> showDiagnostics());
-        row.addView(diag);
-
-        return row;
-    }
 
     /** 框架连接、真实作用域、开关数量、已注入进程，用来判断「为什么没拦住」 */
     private boolean diagRetried;
