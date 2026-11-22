@@ -654,7 +654,7 @@ public class MainActivity extends Activity {
         GradientDrawable glass = new GradientDrawable();
         // 半透明底 + 下层的模糊位图 → 视觉上是液态玻璃；不透明会盖掉模糊
         // surfaceContainer.copy(0.4f)：40% 不透明，剩下的交给下层的模糊位图
-        glass.setColor(nightMode ? 0x1F211F26 : 0x1FF3EDF7);
+        glass.setColor(nightMode ? 0x14211F26 : 0x14F3EDF7);
         glass.setCornerRadius(dp(32));       // CircleShape 等价：64dp 高的一半
         barShell.setBackground(glass);
         barShell.setPadding(dp(4), dp(4), dp(4), dp(4));
@@ -752,8 +752,8 @@ public class MainActivity extends Activity {
         glassBackdrop = new ImageView(this);
         glassBackdrop.setScaleType(ImageView.ScaleType.FIT_XY);
         GradientDrawable glassClip = new GradientDrawable();
-        // 深色下必须是暗底：这一层在模糊位图生成前会先露出来（首帧/切主题重建）
-        glassClip.setColor(nightMode ? 0xFF1C1C1E : 0xFFFFFFFF);
+        // 不再兜白色：没有模糊位图时宁可透明，也不能变成一块白板
+        glassClip.setColor(0x00000000);   // 完全透明：宁可看到清晰内容，也不要白板
         glassClip.setCornerRadius(dp(32));
         glassBackdrop.setBackground(glassClip);
         glassBackdrop.setClipToOutline(true);
@@ -1223,7 +1223,6 @@ public class MainActivity extends Activity {
         bulk.addView(bulkButton("全部启用", this::requestAll));
         bulk.addView(bulkButton("全部停用", this::removeAll));
         bulk.addView(bulkButton("全部重启", this::restartAll));
-        bulk.addView(bulkButton("热重载", () -> hotReload(null)));
         root.addView(bulk);
         for (final Group g : GROUPS) {
             LinearLayout c = card();
