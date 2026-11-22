@@ -616,6 +616,9 @@ public class MainActivity extends Activity {
     private boolean barTouching;   // 底栏触摸全程为真，期间不让页面进度接管胶囊
 
     private void buildUi() {
+        // 重建后必须重设一次选中态颜色：否则 tabUiReady 仍是 true，
+        // updateTabUi 会走早退分支，底栏文字/图标停在灰色，要切页才变蓝
+        tabUiReady = false;
         FrameLayout rootFrame = new FrameLayout(this);
         rootFrame.setBackgroundColor(BG);
 
