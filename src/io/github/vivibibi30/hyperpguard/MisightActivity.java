@@ -259,24 +259,21 @@ public final class MisightActivity extends Activity {
         }
         content.addView(listCard);
 
-        content.addView(noteCard("这个库是什么",
-                "MiSight 是系统的行为采集框架：把用户行为（打开应用、充电、切换网络、使用时长等）"
-                        + "记成事件，落在 /data/miuilog/misight/event.db。"
-                        + "这里每条「事件」是一次记录，param_list 里是场景字段（例如应用包名、屏幕亮度、"
-                        + "时长、网络类型），不含聊天内容、文件或账号密码。"));
+        content.addView(noteCard("什么时候触发、发给谁",
+                "这个组件并非持续在后台静默上传，主要活动由特定场景触发：\n"
+                        + "· 系统「反馈」提交问题日志 → feedback.miui.com 下的 /misight/upload/\n"
+                        + "· 售后远程检测 → port.sec.miui.com\n"
+                        + "· 在线客服诊断 → chat.kefu.mi.com 的相关诊断接口\n"
+                        + "其余事件先在本地记账，达到策略条件才可能出网；"
+                        + "「上传记录」为空说明还没有数据离开本机。"));
 
-        content.addView(noteCard("数据流向",
-                "1. 应用调用 MiSight 接口记录事件 → 本机写入 event_info，参数在 param_list\n"
-                        + "2. 框架按事件聚合到 event_daily，记每日次数与最近一次时间\n"
-                        + "3. 满足上报策略时写入 upload 记录，由系统服务在联网时发出；"
-                        + "upload 为空说明还没有数据出本机\n"
-                        + "4. 本页只读第 1、2 步落盘的结果，不写入、不上传、不参与拦截决策"));
+        content.addView(noteCard("库里有什么",
+                "event_info：每次事件一条，event_id + param_list（场景字段，例如包名、亮度、时长、网络类型）\n"
+                        + "event_daily：按事件聚合的每日次数与最近一次时间\n"
+                        + "upload：上传记录，有行说明已经有数据出过本机\n"
+                        + "version：库版本\n"
+                        + "这里只做只读展示：用 su 复制一份快照查询，查完即删，不改原库、不导出、不联网。"));
 
-        content.addView(noteCard("使用边界",
-                "仅查看本机、当前用户的数据。读取需要用 su 把系统库复制到应用缓存，查询完立即删除副本；"
-                        + "页面不联网、不导出、不修改原库。"
-                        + "本模块只做本机自查，不协助读取他人设备或账号的数据；"
-                        + "请只在你自己拥有或获授权的设备上使用。"));
     }
 
     private View eventRow(final Misight.Event e) {

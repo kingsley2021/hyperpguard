@@ -1,6 +1,6 @@
 上报行为拦截（HyperPGuard）免责声明
 
-版本 1.15
+版本 1.16
 
 一、用途定位
 
@@ -32,6 +32,8 @@
 
 本模块默认不联网、不收集、不上传任何用户信息。仅在用户主动点击设置页「检查更新」时，向 api.github.com 请求一次最新版本号，不发送设备标识或使用数据；不点击则完全无网络行为。模块内所有开关配置保存在设备本地（应用私有目录），日志仅通过系统 logcat 在本地读取，分享行为完全由使用者主动触发。
 
+模块提供本机数据自查页（「安全中心行为库」计数与「MiSight 事件库」只读浏览）。后者在获得 root 授权后，把系统库 `/data/miuilog/misight/event.db` 复制到应用私有目录再只读查询，用于查看系统记录的事件、触发场景与上传记录；查询完立即删除副本，不修改原库、不导出、不上传，页面本身不联网。没有 root 或拒绝授权时该页不可用。所读数据属于使用者本人设备与当前用户，不涉及他人设备或账号。
+
 五、关于 LSPosed 作用域的调整
 
 1) 本模块切换某个应用的「启用」开关时，通过 libxposed 官方接口（XposedService#requestScope / #removeScope）请求 LSPosed 调整作用域，不直接读写 LSPosed 的配置文件或数据库。
@@ -42,7 +44,7 @@
 
 4) 本模块不保证在所有 LSPosed 版本或分支上均可用，需支持 libxposed API 100 及以上。
 
-5) 需要 root 的功能只执行以下命令：`settings put global hyperpguard_conf`（写开关）、`am force-stop <包名>`（重启指定应用）、复制行为库到应用私有目录用于本地查看（读完即删）。不修改系统分区，不安装、不卸载任何组件。
+5) 需要 root 的功能只执行以下命令：`settings put global hyperpguard_conf`（写开关）、`am force-stop <包名>`（重启指定应用）、复制行为库 / MiSight 事件库到应用私有目录用于本地查看（读完即删）。不修改系统分区，不安装、不卸载任何组件。
 
 6) 作用域异常时，请在 LSPosed 管理器中重新勾选即可，无需改动任何文件。
 
@@ -102,4 +104,4 @@ HyperPGuard is a personal privacy tool for Android devices you own and fully con
 
 This tool operates solely on the local device of its user and does not access, interfere with, or compromise any third party's network or system.
 
-生成日期：2026-11-08
+生成日期：2026-11-22

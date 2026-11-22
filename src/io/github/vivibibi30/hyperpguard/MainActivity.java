@@ -231,7 +231,7 @@ public class MainActivity extends Activity {
     private AlertDialog shownDialog;
     private int appliedNight = -1;
     /** DISCLAIMER.txt 的版本号，变了就重新弹一次确认 */
-    private static final int DISCLAIMER_VER = 15;
+    private static final int DISCLAIMER_VER = 16;
     private int restoreScrollY;
     private final Handler ui = new Handler(Looper.getMainLooper());
     private XposedService xposed;
@@ -537,6 +537,7 @@ public class MainActivity extends Activity {
         tabPill.setScaleX(scale / (1f - kx));   // 快速右滑时横向拉长
         tabPill.setScaleY(scale * (1f - ky));   // 同时纵向压扁
         tabPill.setAlpha(1f - pressProgress * 0.55f);  // 按下时玻璃球淡出，露底下的模糊
+        tabPill.setPress(pressProgress);
     }
 
     private int barInnerWidth() {
@@ -1089,6 +1090,8 @@ public class MainActivity extends Activity {
     }
 
     private long glassLastAt;
+    /** 底栏外壳的折射 shader（与胶囊各用一个实例，uniform 不共享） */
+    private android.graphics.RuntimeShader shellLens;
     private boolean glassPending;
 
     /** 内容滚动或切页时节流刷新底栏模糊，保证玻璃后面一直是当前真实内容 */
@@ -1733,8 +1736,36 @@ public class MainActivity extends Activity {
                 android.graphics.RenderEffect sat =
                         android.graphics.RenderEffect.createColorFilterEffect(
                                 new android.graphics.ColorMatrixColorFilter(cm), null);
-                glassBackdrop.setRenderEffect(
-                        android.graphics.RenderEffect.createChainEffect(sat, blur));
+                /* miuix 的底栏外壳是 blur → lens：整条玻璃本身也做 24dp 折射，
+                 * 只做模糊会像一块磨砂白板，看不出液态玻璃。 */
+                android.graphics.RenderEffect chain =
+                        android.graphics.RenderEffect.createChainEffect(sat, blur);
+                try {
+                    if (shellLens == null) {
+                        String src = GlassPill.lensSource(this);
+                        if (!src.isEmpty()) {
+                            shellLens = new android.graphics.RuntimeShader(src);
+                        }
+                    }
+                    if (shellLens != null) {
+                        float d = getResources().getDisplayMetrics().density;
+                        float pad = 24f * d;
+                        float rr = dp(32);
+                        shellLens.setFloatUniform("size", new float[]{w, h});
+                        shellLens.setFloatUniform("offset", new float[]{-pad, -pad});
+                        shellLens.setFloatUniform("cornerRadii", new float[]{rr, rr, rr, rr});
+                        shellLens.setFloatUniform("refractionHeight", pad);
+                        shellLens.setFloatUniform("refractionAmount", -pad);
+                        shellLens.setFloatUniform("depthEffect", 1f);
+                        shellLens.setFloatUniform("chromaticAberration", 0.5f);
+                        chain = android.graphics.RenderEffect.createChainEffect(chain,
+                                android.graphics.RenderEffect.createRuntimeShaderEffect(
+                                        shellLens, "content"));
+                    }
+                } catch (Throwable t) {
+                    Logs.i("shell lens unavailable: " + t);
+                }
+                glassBackdrop.setRenderEffect(chain);
             }
         } catch (Throwable ignored) {
         }
@@ -3362,7 +3393,7 @@ public class MainActivity extends Activity {
          */
         private static String lensSource;
 
-        private static String lensSource(android.content.Context c) {
+        static String lensSource(android.content.Context c) {
             if (lensSource == null) {
                 java.io.InputStream in = null;
                 try {
@@ -3390,6 +3421,8 @@ public class MainActivity extends Activity {
         private android.graphics.BitmapShader shader;
         private android.graphics.RuntimeShader lens;
         private boolean lensWarned;
+        /** 0..1 按下进度：miuix 的胶囊只在按下时做折射，静止时只有 10% 叠色 */
+        private float press;
         /** 玻璃厚度：左上高光 + 底部内阴影，尺寸变化时重建 */
         private android.graphics.RadialGradient sheen;
         private android.graphics.LinearGradient shade;
@@ -3427,6 +3460,12 @@ public class MainActivity extends Activity {
             invalidate();
         }
 
+        void setPress(float p) {
+            if (Math.abs(p - press) < 0.01f) return;
+            press = p;
+            invalidate();
+        }
+
         void setSrcOffsetX(float x) {
             if (Math.abs(x - srcOffsetX) < 0.01f) return;
             srcOffsetX = x;
@@ -3445,7 +3484,7 @@ public class MainActivity extends Activity {
                 matrix.setTranslate(-srcOffsetX, 0f);
                 shader.setLocalMatrix(matrix);
                 boolean lensed = false;
-                if (android.os.Build.VERSION.SDK_INT >= 33) {
+                if (press > 0.01f && android.os.Build.VERSION.SDK_INT >= 33) {
                     try {
                         if (lens == null) {
                             String src = lensSource(getContext());
@@ -3454,16 +3493,18 @@ public class MainActivity extends Activity {
                             }
                         }
                         if (lens != null) {
+                            float d = getResources().getDisplayMetrics().density;
+                            float rh = Math.max(1f, 10f * d * press);
+                            float ra = Math.max(1f, 14f * d * press);
                             lens.setInputShader("content", shader);
                             lens.setFloatUniform("size", new float[]{w, h});
-                            lens.setFloatUniform("offset", new float[]{0f, 0f});
+                            // miuix: offset = -padding，padding = refractionAmount
+                            lens.setFloatUniform("offset", new float[]{-ra, -ra});
                             lens.setFloatUniform("cornerRadii", new float[]{r, r, r, r});
-                            lens.setFloatUniform("refractionHeight",
-                                    Math.max(1f, Math.min(w, h) * 0.45f));
-                            lens.setFloatUniform("refractionAmount",
-                                    -Math.max(1f, h * 0.10f));
+                            lens.setFloatUniform("refractionHeight", rh);
+                            lens.setFloatUniform("refractionAmount", -ra);
                             lens.setFloatUniform("depthEffect", 1f);
-                            lens.setFloatUniform("chromaticAberration", 0.12f);
+                            lens.setFloatUniform("chromaticAberration", 0.5f);
                             fill.setShader(lens);
                             canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
                             lensed = true;
@@ -3503,7 +3544,7 @@ public class MainActivity extends Activity {
 
             fill.setShader(null);
             // 源码 onDrawSurface：浅色 Black.copy(0.1f)，深色 White.copy(0.1f)
-            fill.setColor(night ? 0x0AFFFFFF : 0x0A000000);
+            fill.setColor(night ? 0x1AFFFFFF : 0x1A000000);
             canvas.drawRoundRect(0f, 0f, w, h, r, r, fill);
 
             float stroke = Math.max(1f, getResources().getDisplayMetrics().density);

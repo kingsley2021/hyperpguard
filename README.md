@@ -223,8 +223,7 @@ build.sh              一键构建
 - **[frauddb](https://github.com/acnekot/frauddb)**（acnekot，MIT）— 行为库的表结构、库路径与号码摘要算法
 - **[hyperos-dm-report](https://github.com/acxun/hyperos-dm-report)**（作者 [acxun](https://github.com/acxun)，文档 CC BY 4.0）— 运营商 DM 组件的上报链路与加密方式、诊断组件的事件日志域名；本文只引用其结论，未复制原文
 - **[misight-viewer](https://github.com/Artriai/misight-viewer)**（作者 [Artriai](https://github.com/Artriai)）— 诊断组件的数据库字段与事件分类、设备诊断与用户行为记录的区分依据
-- **[KernelSU](https://github.com/tiann/KernelSU)**（GPL-3.0，作者 [tiann](https://github.com/tiann) 与贡献者）— 1.7.0 悬浮底栏的尺寸与配色、`DampedDragAnimation` 的弹簧与按压时序、`MainPagerState` 的翻页同步判据；仅对照参数重写，未复制源码
-- **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— `PagerNavigationSpringSpec` 与 `IosLiquidGlassNavigationBar` 示例，KernelSU 的浮动底栏即由该示例改写而来
+- **[compose-miuix-ui / miuix](https://github.com/compose-miuix-ui/miuix)**（Apache-2.0）— 底栏的液态玻璃折射（`assets/lens_refraction.agsl` 改编自其 `IosLiquidGlassNavigationBar` 示例中的 lens 实现，该示例注明改编自 [Kyant0/AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass)）与页面切换弹簧参数；按 Apache-2.0 保留声明
 - **libxposed API**（Apache-2.0）、**LSPosed** — 模块入口与作用域接口
 
 第三方组件：`libxposed API 102`（Apache-2.0，编译期依赖），详见 [NOTICE](NOTICE)。
@@ -239,7 +238,7 @@ build.sh              一键构建
 - 本模块只作用于**你拥有或获授权的设备**上的进程，不提供也不协助中断他人设备或服务；规则由使用者自行配置，影响应用功能的开关默认关闭
 - 「自定义规则」由使用者自行填写，其中方法级规则会直接改变目标进程内方法的返回值；模块不提供任何预置方法级规则，由此产生的应用异常或功能失效由使用者承担
 - 模块名称、包名、图标归作者所有，不得冒充官方版本
-- 与小米、中国联通等厂商无隶属或合作关系，商标归各自权利人；界面对 KernelSU、compose-miuix-ui 的参考仅为实现思路，不代表其作者认可或背书本项目
+- 与小米、中国联通等厂商无隶属或合作关系，商标归各自权利人；界面动效参考了 compose-miuix-ui 的公开示例（Apache-2.0），不代表其作者认可或背书本项目
 - 分析结论来自对自己设备上已安装组件的公开行为观察（网络请求、日志、界面），不包含厂商私有文档、未公开源码或内部数据
 - 如权利人认为本项目某项描述或实现不当，可通过 Issues 或仓库主页的联系方式提出，我们会核实后调整或移除
 - 按「现状」提供，不提供任何明示或暗示担保

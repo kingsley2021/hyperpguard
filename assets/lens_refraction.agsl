@@ -1,3 +1,7 @@
+// Lens refraction shader for HyperPGuard's floating bottom bar.
+// Adapted from compose-miuix-ui / miuix (IosLiquidGlassNavigationBar, Apache-2.0),
+// which is adapted from Kyant0 / AndroidLiquidGlass (Apache-2.0).
+// Modification: extracted as a standalone AGSL source for android.graphics.RuntimeShader.
 
 uniform shader content;
 
