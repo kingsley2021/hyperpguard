@@ -147,7 +147,7 @@ src/io/github/vivibibi30/hyperpguard/
 ├── MainActivity.java   界面：生命周期、三页组装、作用域、弹窗
 ├── UiKit.java          UI 组件工厂（卡片 / 行 / 分隔线 / 按压）
 ├── Theme.java          主题色板
-├── BottomBar.java      底栏：Stage + 玻璃球 + 高光 + 图标
+├── BottomBar.java      底栏全部：Stage + 玻璃球 + 高光 + 图标 + 构建/弹簧/切页
 ├── ConfigIO.java       配置导入导出
 ├── LogTools.java       日志解析（统计 / 分段 / 域名注解）
 ├── Misight.java        MiSight 事件库只读快照
