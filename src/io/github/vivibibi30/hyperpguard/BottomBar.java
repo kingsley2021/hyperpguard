@@ -1,5 +1,14 @@
 package io.github.vivibibi30.hyperpguard;
 
+import java.util.ArrayList;
+import android.view.ViewGroup;
+import android.view.Gravity;
+import android.view.View;
+import android.util.TypedValue;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.graphics.drawable.GradientDrawable;
 import android.widget.FrameLayout;
 
 /**
@@ -526,3 +535,472 @@ import android.widget.FrameLayout;
             springToPage(Math.max(0, Math.min(pageCount - 1, page)), -vx);
         }
     }
+
+
+/** 底栏构建与交互：胶囊弹簧、切页、玻璃刷新。改底栏只动这个文件。 */
+final class BottomBarController {
+
+    private final MainActivity host;
+    private final Stage stage;
+    private final java.util.List<android.widget.ScrollView> pageScrolls;
+
+    private long glassLastAt;
+    private boolean glassPending;
+    private float barDownX;
+    private float barDownY;
+    private boolean barDragging;
+    private boolean barTouching;
+
+    BottomBarController(MainActivity host, Stage stage,
+                        java.util.List<android.widget.ScrollView> pageScrolls) {
+        this.host = host;
+        this.stage = stage;
+        this.pageScrolls = pageScrolls;
+    }
+
+    private final java.util.List<LinearLayout> tabViews = new ArrayList<>();
+    private int currentTab = 0;
+    private boolean tabUiReady;
+
+    private GlassPill tabPill;
+    private LinearLayout tabBar;
+    private final java.util.List<TabIcon> tabIcons = new ArrayList<>();
+    private final java.util.List<TextView> tabLabels = new ArrayList<>();
+    private ImageView glassBackdrop;
+
+    /* ───────── 胶囊驱动：照 DampedDragAnimation.kt 的物理模型 ─────────
+     * 源码用的是
+     *   valueAnimationSpec = spring(dampingRatio = 1f, stiffness = 1000f, minVisibleChange = 0.001f)
+     * 每一个帧换算成积分就是 k = 1000、c = 2*sqrt(k) = 63.2（临界阻尼，不回过冲）。
+     * value 的单位是"第几格"（0 .. n-1），不是像素，和源码的 valueRange 一致。
+     * 按下、拖动、松手共用同一条曲线，任何一帧都不会被硬设覆盖。
+     */
+    private float pillValue;        // 当前格位（浮点）
+    private float pillVelocity;     // 格/s
+    private float pillTarget;       // 目标格位
+    private float pressProgress;    // 0..1 按下进度
+    private float pressVelocity;
+    private float pressTarget;
+    private long pillLastFrame;
+    private boolean pillRunning;
+    private boolean pressHold;      // 胶囊还在赶路，先别缩回（对应 release() 的等值逻辑）
+    private static final float PILL_STIFFNESS = 1000f;
+    private static final float PILL_DAMPING = 63.2f;      // 2*sqrt(1000)
+    /* 按下放大倍率。KernelSU 源码写的是 78f/56f ≈ 1.393，但那是 56dp 胶囊在一块不裁剪的
+     * Compose 容器里长到 78dp：上下各顶出 64dp 外壳 7dp、边缘格左右各顶出 20dp，
+     * 靠不裁剪加 lens 折射高光才成立。这里是纯 Canvas，被父容器或屏幕边缘切一刀就是硬边。
+     * 上限由两件事决定：
+     *   竖向 56dp * s <= 64dp 外壳                  -> s <= 1.1429
+     *   横向 胶囊宽就是满格 cell，左右各只剩 4dp 内边 -> s <= 1 + 8dp / cell
+     *        （本机 cell = (384-52-8)/3 ≈ 108dp -> 1.074）
+     * 取 1.07：常见屏宽下都完整留在 64dp 外壳里，首尾格也一点不溢出。 */
+    private static final float PRESSED_SCALE = 1.07f;
+
+    private final android.view.Choreographer.FrameCallback pillTicker =
+            new android.view.Choreographer.FrameCallback() {
+                @Override
+                public void doFrame(long frameTimeNanos) {
+                    if (!pillRunning) return;
+                    if (pillLastFrame == 0L) pillLastFrame = frameTimeNanos - 16000000L;
+                    float dt = (frameTimeNanos - pillLastFrame) / 1.0e9f;
+                    pillLastFrame = frameTimeNanos;
+                    if (dt > 0.032f) dt = 0.032f;   // 掉帧时钳住，否则弹簧会炸
+                    if (dt <= 0f) dt = 0.016f;
+
+                    // 与 Stage 同样的理由：一帧拆成 4ms 子步，掉帧时不发散
+                    float pillLeft = dt;
+                    while (pillLeft > 0f) {
+                        float step = Math.min(0.004f, pillLeft);
+                        pillVelocity += ((pillTarget - pillValue) * PILL_STIFFNESS
+                                - pillVelocity * PILL_DAMPING) * step;
+                        pillValue += pillVelocity * step;
+                        pillLeft -= step;
+                    }
+
+                    // release()：|value - targetValue| 小于跨度 2.5% 才开始缩回
+                    if (pressHold) {
+                        float holdSpan = Math.max(1f, tabViews.size() - 1);
+                        if (Math.abs(pillTarget - pillValue) < holdSpan * 0.025f) {
+                            pressTarget = 0f;
+                            pressHold = false;
+                        }
+                    }
+
+                    float pressLeft = dt;
+                    while (pressLeft > 0f) {
+                        float step = Math.min(0.004f, pressLeft);
+                        pressVelocity += ((pressTarget - pressProgress) * PILL_STIFFNESS
+                                - pressVelocity * PILL_DAMPING) * step;
+                        pressProgress += pressVelocity * step;
+                        pressLeft -= step;
+                    }
+
+                    boolean valueSettled = Math.abs(pillTarget - pillValue) < 0.0015f
+                            && Math.abs(pillVelocity) < 0.01f;
+                    boolean pressSettled = Math.abs(pressTarget - pressProgress) < 0.002f
+                            && Math.abs(pressVelocity) < 0.02f;
+                    if (valueSettled) {
+                        pillValue = pillTarget;
+                        pillVelocity = 0f;
+                    }
+                    if (pressSettled) {
+                        pressProgress = pressTarget;
+                        pressVelocity = 0f;
+                    }
+                    applyPill();
+                    if (valueSettled && pressSettled) {
+                        pillRunning = false;
+                        pillLastFrame = 0L;
+                        return;
+                    }
+                    android.view.Choreographer.getInstance().postFrameCallback(this);
+                }
+            };
+
+    private void drivePill(float target) {
+        drivePill(target, true);
+    }
+
+    /**
+     * press = true 时复刻 DampedDragAnimation.animateToValue：
+     * 先 press() 放大，整段位移都是按下态，到位后由 release() 缩回。
+     */
+    private void drivePill(float target, boolean press) {
+        pillTarget = target;
+        if (press) {
+            pressTarget = 1f;
+            pressHold = true;
+        }
+        startPillTicker();
+    }
+
+    private void pressPill(boolean down) {
+        pressTarget = down ? 1f : 0f;
+        if (!down) pressHold = false;
+        startPillTicker();
+    }
+
+    /** 手指抬起：不立刻缩回，等胶囊走到目标格附近再缩（同源码 release()） */
+    private void releasePillAfterSettle() {
+        pressHold = true;
+        startPillTicker();
+    }
+
+    private void startPillTicker() {
+        if (pillRunning) return;
+        pillRunning = true;
+        pillLastFrame = 0L;
+        android.view.Choreographer.getInstance().postFrameCallback(pillTicker);
+    }
+
+    /** 位置 + 按下缩放 + 速度形变，公式和 FloatingBottomBar 的 layerBlock 一致 */
+    private void applyPill() {
+        if (tabPill == null) return;
+        int cell = barCellWidth();
+        if (cell <= 0) return;
+        // 胶囊中心对齐 pillValue 对应的格心：首尾格也完整落在底栏内，左右对称
+        float left = pillValue * cell + (cell - pillWidth()) / 2f;
+        tabPill.setTranslationX(left);
+        // 模糊位图和底栏同坐标系（barShell 内边距 4dp），胶囊该取哪块由它自己算
+        tabPill.setSrcOffsetX(host.dp(4) + left);
+
+        float scale = 1f + (PRESSED_SCALE - 1f) * pressProgress;
+        /* 速度形变只在手指拖底栏时生效。KernelSU 的 velocity 只在 updateValue()（拖动）里更新，
+         * 点底栏走的是 animateToValue()，那里根本不动 velocity，所以点击时不会有拉伸；
+         * 我们用的是弹簧的实时速度，点击跨两格时会瞬间到 20+ 格/秒，被 clamp 到上限 0.2，
+         * 胶囊横向被拉到 1.25 倍，看着就像「弹出去又弹回来」——所以补上这个条件。 */
+        float span = Math.max(1f, tabViews.size() - 1);
+        float v = barDragging ? pillVelocity / span / 10f : 0f;
+        float kx = Math.max(-0.2f, Math.min(0.2f, v * 0.75f));
+        float ky = Math.max(-0.2f, Math.min(0.2f, v * 0.25f));
+        tabPill.setScaleX(scale / (1f - kx));   // 快速右滑时横向拉长
+        tabPill.setScaleY(scale * (1f - ky));   // 同时纵向压扁
+        tabPill.setAlpha(1f - pressProgress * 0.55f);  // 按下时玻璃球淡出，露底下的模糊
+    }
+
+    private int barInnerWidth() {
+        if (tabBar == null) return 0;
+        return tabBar.getWidth();
+    }
+
+    private int barCellWidth() {
+        int w = barInnerWidth();
+        int n = Math.max(1, tabViews.size());
+        if (w <= 0) return 0;
+        return Math.max(1, w / n);
+    }
+
+    /**
+     * 指示器宽度 = 整格减 8dp（两边各留 4dp）。
+     * KernelSU 的指示器就是 tabWidth 宽，第一格时左边缘几乎贴着底栏内边，
+     * 这才是「边缘贴合」的来源；固定 76dp 一定留出 20dp 以上的空隙。
+     */
+    private int pillWidth() {
+        int cell = barCellWidth();
+        if (cell <= 0) return host.dp(72);
+        return Math.max(host.dp(40), cell);
+    }
+
+    private void barPillWidth() {
+        if (tabPill == null) return;
+        ViewGroup.LayoutParams lp = tabPill.getLayoutParams();
+        if (lp.width == pillWidth() && lp.height == host.dp(56)) return;
+        lp.width = pillWidth();
+        lp.height = host.dp(56);
+        tabPill.setLayoutParams(lp);
+    }
+
+    /** idx 号 tab 的胶囊格位：胶囊宽度就是整格，所以直接用索引 */
+    private float pillXForIndex(int idx) {
+        int n = Math.max(1, tabViews.size());
+        return Math.max(0, Math.min(n - 1, idx));
+    }
+
+    /** 手指 x → 胶囊格位；胶囊中心贴手指，两端夹在首尾格内 */
+    private float pillXForTouch(float touchX) {
+        int cell = barCellWidth();
+        int n = Math.max(1, tabViews.size());
+        if (cell <= 0) return pillValue;
+        float v = touchX / (float) cell - 0.5f;
+        return Math.max(0f, Math.min(n - 1f, v));
+    }
+
+    void scheduleGlassRefresh() {
+        if (glassPending || glassBackdrop == null) return;
+        long now = android.os.SystemClock.uptimeMillis();
+        long wait = Math.max(0L, 90L - (now - glassLastAt));
+        glassPending = true;
+        glassBackdrop.postDelayed(() -> {
+            glassPending = false;
+            glassLastAt = android.os.SystemClock.uptimeMillis();
+            updateGlassBackdrop();
+        }, wait);
+    }
+
+    private void selectTab(int idx) {
+        if (host.pageScrolls.isEmpty()) return;
+        int i = Math.max(0, Math.min(host.pageScrolls.size() - 1, idx));
+        if (stage != null) stage.springToPageFromBar(i);
+        updateTabUi(i);
+    }
+
+    void updateTabUi(int idx) {
+        if (idx < 0 || idx >= tabViews.size()) return;
+        if (idx == currentTab && tabUiReady) {
+            // 同一页会被调用两次（滑动过半一次、吸附结束一次）。第二次只认胶囊目标，
+            // 不再重设 typeface / 颜色：重建 Typeface 会让文字重排、底栏图标闪一下，
+            // 再 drivePill(press) 还会让胶囊多放大一次。
+            if (idx < host.pageScrolls.size()) host.scrollRoot = host.pageScrolls.get(idx);
+            drivePill(pillXForIndex(idx), false);
+            return;
+        }
+        currentTab = idx;
+        tabUiReady = true;
+        for (int i = 0; i < tabViews.size(); i++) {
+            boolean on = i == idx;
+            if (i < tabIcons.size()) {
+                tabIcons.get(i).setSelected(on);
+                tabIcons.get(i).setIconColor(on ? host.ACCENT : host.SUB);
+            }
+            if (i < tabLabels.size()) {
+                tabLabels.get(i).setTextColor(on ? host.ACCENT : host.SUB);
+                tabLabels.get(i).setTypeface(null, on ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+            }
+        }
+        if (idx < host.pageScrolls.size()) host.scrollRoot = host.pageScrolls.get(idx);
+        drivePill(pillXForIndex(idx));
+        if (glassBackdrop != null) glassBackdrop.postDelayed(this::updateGlassBackdrop, 360);
+    }
+
+    private void updateGlassBackdrop() {
+        if (glassBackdrop == null || stage == null) return;
+        int w = glassBackdrop.getWidth();
+        int h = glassBackdrop.getHeight();
+        if (w <= 0 || h <= 0) return;
+        try {
+            int[] loc = new int[2];
+            glassBackdrop.getLocationInWindow(loc);
+            int[] pagerLoc = new int[2];
+            stage.getLocationInWindow(pagerLoc);
+            int dx = pagerLoc[0] - loc[0];
+            int dy = pagerLoc[1] - loc[1];
+            // 降采样绘制，模糊后观感一致，开销小很多
+            int sw = Math.max(1, w / 4);
+            int sh = Math.max(1, h / 4);
+            android.graphics.Bitmap small = android.graphics.Bitmap.createBitmap(sw, sh, android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c = new android.graphics.Canvas(small);
+            c.scale(1f / 4f, 1f / 4f);
+            c.translate(-dx, -dy);
+            stage.draw(c);
+            android.graphics.Bitmap scaled = android.graphics.Bitmap.createScaledBitmap(small, w, h, true);
+            small.recycle();
+            glassBackdrop.setImageBitmap(scaled);
+            if (tabPill != null) {
+                tabPill.setBackdrop(scaled);
+                tabPill.setSrcOffsetX(host.dp(4) + pillValue * barCellWidth()
+                        + (barCellWidth() - pillWidth()) / 2f);
+            }
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                // 源码：blur(4.dp) + vibrancy()，不是大半径糊成一片
+                float r = 4f * host.getResources().getDisplayMetrics().density;
+                android.graphics.RenderEffect blur =
+                        android.graphics.RenderEffect.createBlurEffect(
+                                r, r, android.graphics.Shader.TileMode.CLAMP);
+                android.graphics.ColorMatrix cm = new android.graphics.ColorMatrix();
+                cm.setSaturation(1.6f);
+                android.graphics.RenderEffect sat =
+                        android.graphics.RenderEffect.createColorFilterEffect(
+                                new android.graphics.ColorMatrixColorFilter(cm), null);
+                glassBackdrop.setRenderEffect(
+                        android.graphics.RenderEffect.createChainEffect(sat, blur));
+            }
+        } catch (Throwable ignored) {
+        }
+    }
+
+    int currentTab() {
+        return currentTab;
+    }
+
+    void onPageScrolled(float progress) {
+        if (barTouching || tabViews.isEmpty()) return;
+        if (stage != null && stage.isNavigating()) return;
+        int n = tabViews.size();
+        float clamped = Math.max(0f, Math.min(n - 1f, progress));
+        int page = Math.round(clamped);
+        if (page != currentTab) updateTabUi(page);
+    }
+
+    private int nearestTab() {
+        int n = Math.max(1, tabViews.size());
+        return Math.max(0, Math.min(n - 1, Math.round(pillTarget)));
+    }
+
+    void build(FrameLayout rootFrame) {
+        FrameLayout barShell = new FrameLayout(host);
+        GradientDrawable glass = new GradientDrawable();
+        // 半透明底 + 下层的模糊位图 → 视觉上是液态玻璃；不透明会盖掉模糊
+        // surfaceContainer.copy(0.4f)：40% 不透明，剩下的交给下层的模糊位图
+        glass.setColor(host.nightMode ? 0x66211F26 : 0x66F3EDF7);   // KernelSU: surfaceContainer.copy(0.4f)
+        glass.setCornerRadius(host.dp(32));       // CircleShape 等价：64dp 高的一半
+        barShell.setBackground(glass);
+        barShell.setPadding(host.dp(4), host.dp(4), host.dp(4), host.dp(4));
+        // 胶囊按下只放大到外壳里（1.07），四个方向都不会越界，不依赖父容器不裁剪
+        barShell.setClipChildren(false);
+        barShell.setClipToPadding(false);
+        barShell.setElevation(host.dp(10));       // dropShadow(radius = 10.dp, alpha = 0.1f)
+        barShell.setOutlineSpotShadowColor(0x1A000000);
+        barShell.setOutlineAmbientShadowColor(0x1A000000);
+
+        tabPill = new GlassPill(host);
+        tabPill.setNight(host.nightMode);
+        // 宽度 = 一格的宽，布局完成后由 barPillWidth() 修正
+        barShell.addView(tabPill, new FrameLayout.LayoutParams(pillWidth(), host.dp(56)));
+
+        tabBar = new LinearLayout(host);
+        tabBar.setOrientation(LinearLayout.HORIZONTAL);
+        tabViews.clear();
+        tabIcons.clear();
+        tabLabels.clear();
+        String[] names = new String[]{host.T("主页"), host.T("组件拦截"), host.T("设置")};
+        for (int i = 0; i < names.length; i++) {
+            final int idx = i;
+            LinearLayout tab = new LinearLayout(host);
+            tab.setOrientation(LinearLayout.VERTICAL);
+            tab.setGravity(Gravity.CENTER);
+            TabIcon icon = new TabIcon(host, i);
+            LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(host.dp(24), host.dp(24));
+            ilp.bottomMargin = host.dp(2);
+            tab.addView(icon, ilp);
+            TextView label = new TextView(host);
+            label.setText(names[i]);
+            label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            label.setGravity(Gravity.CENTER);
+            tab.addView(label, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            tabViews.add(tab);
+            tabIcons.add(icon);
+            tabLabels.add(label);
+            tabBar.addView(tab, new LinearLayout.LayoutParams(0, host.dp(56), 1f));
+        }
+        barShell.addView(tabBar, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, host.dp(56)));
+
+        /* 顶层触摸层：整条底栏由它接管，行为照 DampedDragAnimation 的 pointerInput
+         * 按下   → press() 放大到 PRESSED_SCALE，胶囊 spring 吸到手指所在格
+         * 拖动   → 只推胶囊格位，页面一动不动
+         * 松手   → targetValue.roundToInt() 吸附，这才调 onSelected 切页
+         */
+        final android.view.View touchLayer = new android.view.View(host);
+        touchLayer.setOnTouchListener((v, e) -> {
+            final int cell = barCellWidth();
+            if (cell <= 0) return false;
+            switch (e.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    barDownX = e.getX();
+                    barDownY = e.getY();
+                    barDragging = false;
+                    barTouching = true;
+                    pressPill(true);
+                    pressHold = false;      // 手指压着，别自动缩回
+                    drivePill(pillXForTouch(e.getX()), false);
+                    return true;
+                case android.view.MotionEvent.ACTION_MOVE:
+                    barDragging = true;
+                    /* 手指还按着：只推目标，不再走 press 分支。
+                     * 之前这里调的是带 press 的 drivePill，于是 pressHold 被反复置真，
+                     * ticker 每次 |pillTarget - pillValue| < 0.05 就把 pressTarget 归零，
+                     * 表现就是「按住不动时是大的，手指一动就缩、停下又放大」。 */
+                    drivePill(pillXForTouch(e.getX()), false);
+                    return true;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    selectTab(nearestTab());
+                    releasePillAfterSettle();
+                    barDragging = false;
+                    barTouching = false;
+                    return true;
+            }
+            return true;
+        });
+        // 玻璃高光层：顶部边缘亮、底部几乎透明，液态玻璃的 specular 边
+        barShell.addView(new GlossView(host, host.dp(32), Math.max(1, host.dp(1))),
+                new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // 固定高度：MATCH_PARENT 会把 WRAP_CONTENT 的底栏容器撑满全屏
+        barShell.addView(touchLayer, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, host.dp(56)));
+
+        FrameLayout barWrap = new FrameLayout(host);
+        barWrap.setClipChildren(false);      // 否则 elevation 阴影被容器裁掉
+        barWrap.setClipToPadding(false);
+        // 液态玻璃底层：模糊位图，被圆角 outline 裁住，垫在 barShell 下面
+        glassBackdrop = new ImageView(host);
+        glassBackdrop.setScaleType(ImageView.ScaleType.FIT_XY);
+        GradientDrawable glassClip = new GradientDrawable();
+        // 深色下必须是暗底：这一层在模糊位图生成前会先露出来（首帧／切主题重建）
+        glassClip.setColor(host.nightMode ? 0xFF1C1C1E : 0xFFFFFFFF);
+        glassClip.setCornerRadius(host.dp(32));
+        glassBackdrop.setBackground(glassClip);
+        glassBackdrop.setClipToOutline(true);
+        glassBackdrop.setOutlineProvider(android.view.ViewOutlineProvider.BACKGROUND);
+        barWrap.addView(glassBackdrop, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        FrameLayout.LayoutParams wlp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, host.dp(64));
+        wlp.gravity = Gravity.BOTTOM;
+        wlp.setMargins(host.dp(26), 0, host.dp(26), host.dp(10) + host.navBarHeight());
+        barWrap.addView(barShell, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, host.dp(64)));
+        rootFrame.addView(barWrap, wlp);
+        updateTabUi(currentTab);
+        tabBar.post(() -> {
+            barPillWidth();
+            pillValue = pillXForIndex(currentTab);
+            applyPill();
+        });
+        barWrap.postDelayed(this::updateGlassBackdrop, 160);
+    }
+}
