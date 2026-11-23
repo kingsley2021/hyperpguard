@@ -1117,10 +1117,8 @@ public class MainActivity extends Activity {
         actions.addView(kit.divider());
         addHideIconRow(actions);
         actions.addView(kit.divider());
-        ViewGroup cfgRow = kit.infoRow("配置导入导出", "导出到 Download / 从剪贴板导入");
-        cfgRow.setClickable(true);
-        cfgRow.setOnClickListener(v -> ConfigIO.show(this, kit));
-        actions.addView(cfgRow);
+        kit.addListRow(actions, "配置导入导出", "导出到 Download / 从剪贴板导入",
+                () -> ConfigIO.show(this, kit));
         root.addView(actions);
 
         root.addView(kit.sectionRow("关于", ""));
@@ -1609,12 +1607,6 @@ public class MainActivity extends Activity {
 
     /* ---------------- 卡片与控件 ---------------- */
 
-    /** 分组小标题：13sp 灰色，放在卡片外 */
-    /** 分组行：左侧小标题，右侧可放一句说明（右对齐，右侧留白与左侧一致） */
-
-
-
-
 
 
     /** 系统状态栏高度，用于沉浸式布局的顶部留白 */
@@ -1647,7 +1639,7 @@ public class MainActivity extends Activity {
         tv.setText(text);
         tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11);
         tv.setTextColor(SUB);
-        tv.setPadding(0, 0, 0, dp(8));
+        tv.setPadding(dp(4), 0, dp(4), dp(8));
         return tv;
     }
 
@@ -1655,7 +1647,8 @@ public class MainActivity extends Activity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(0, dp(12), 0, dp(8));
+        // 左右 4dp 与子项行、批量按钮同一条左边线
+        row.setPadding(dp(4), dp(12), dp(4), dp(8));
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
@@ -1738,7 +1731,8 @@ public class MainActivity extends Activity {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(dp(56));
-        row.setPadding(0, dp(9), 0, dp(9));
+        // 左右 4dp 与其他行一致，否则标题比下面几行更贴卡片边缘
+        row.setPadding(dp(4), dp(9), dp(4), dp(9));
 
         LinearLayout texts = new LinearLayout(this);
         texts.setOrientation(LinearLayout.VERTICAL);
@@ -2179,6 +2173,26 @@ public class MainActivity extends Activity {
         try {
             db = SQLiteDatabase.openDatabase(f.getAbsolutePath(), null,
                     SQLiteDatabase.OPEN_READONLY);
+            boolean hasSeq = false;
+            android.database.Cursor probe = db.rawQuery(
+                    "select count(*) from sqlite_master where type='table'"
+                            + " and name='sqlite_sequence'", null);
+            if (probe.moveToFirst()) hasSeq = probe.getInt(0) > 0;
+            probe.close();
+            if (!hasSeq) {
+                java.util.List<String> tables = new java.util.ArrayList<>();
+                android.database.Cursor tc = db.rawQuery(
+                        "select name from sqlite_master where type='table'"
+                                + " and name not like 'sqlite_%' and name != 'android_metadata'"
+                                + " order by name", null);
+                while (tc.moveToNext()) tables.add(tc.getString(0));
+                tc.close();
+                if (tables.isEmpty()) {
+                    return "库里还没有行为表（只有系统元数据）。\n\n"
+                            + "安全中心产生记录后才会建表；拦截生效时这里不会出现写入。";
+                }
+                return "库里还没有写入计数。\n已有表：" + tables;
+            }
             java.util.TreeMap<String, Integer> now = new java.util.TreeMap<>();
             android.database.Cursor c = db.rawQuery("select name, seq from sqlite_sequence", null);
             while (c.moveToNext()) now.put(c.getString(0), c.getInt(1));
