@@ -132,15 +132,28 @@ sh build.sh
 ```
 src/io/github/vivibibi30/hyperpguard/
 ├── HookEntry.java      入口与按包分发（XposedModule#onPackageReady）
-├── Config.java         开关常量
+├── Config.java         开关常量、默认值表、配置通道
 ├── NetGuard.java       网络出口：URL / InetAddress / Socket + 规则匹配
 ├── PrivacyApis.java    隐私 API：应用列表 / 使用记录 / 标识 / 短信 / XMSF 广播
 ├── CaptureHooks.java   行为库写入与静默录屏
 ├── XsofHooks.java      XSOF Provider / AIDL / 写库 / 评分 + MRM
+├── MsaHooks.java       MSA 使用画像、开屏广告
 ├── AnalyticsHooks.java 统计方法层与签名扫描
+├── TrackHooks.java     OneTrack 埋点收口
+├── ImHooks.java        输入法埋点与剪贴板
 ├── Hooks.java          公共 hook 工具
 ├── Logs.java           统一日志标签
-└── MainActivity.java   设置界面
+├── HotReload.java      开关热重载（libxposed API 102）
+├── MainActivity.java   界面：生命周期、三页组装、作用域、弹窗
+├── UiKit.java          UI 组件工厂（卡片 / 行 / 分隔线 / 按压）
+├── Theme.java          主题色板
+├── BottomBar.java      底栏：Stage + 玻璃球 + 高光 + 图标
+├── ConfigIO.java       配置导入导出
+├── LogTools.java       日志解析（统计 / 分段 / 域名注解）
+├── Misight.java        MiSight 事件库只读快照
+├── MisightActivity.java 事件库浏览页
+├── PgSwitch.java       开关控件
+└── I18n.java           英文查表
 ```
 
 ```
@@ -150,7 +163,7 @@ META-INF/xposed/      模块声明（必须打到 APK 根）
 libs/libxposed-api.jar       libxposed API（compileOnly，不打进 dex）
 libs/libxposed-service.jar   service + interface 合并版（必须打进 dex）
 libs/api-82.jar              传统 Xposed API（编译兼容用）
-docs/                 技术笔记、规则说明、截图
+docs/                 技术笔记、规则说明、发布说明
 build.sh              一键构建
 ```
 
