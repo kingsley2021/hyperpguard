@@ -37,7 +37,8 @@ MainActivity.java  设置界面（程序化构建，无 layout 资源）：生�
 Theme.java         主题色板（bg/card/line/text/sub/accent/night），改配色只动这里
 UiKit.java         无状态组件工厂：card/divider/line/sectionRow/sectionTitle/
                    infoRow/linkRow/singleButton/addListRow/pressBackground
-BottomBar.java     底栏：Stage 页面容器 + GlassPill 玻璃球 + GlossView 高光 + TabIcon
+BottomBar.java     底栏全部：Stage 页面容器 + GlassPill 玻璃球 + GlossView 高光 +
+                   TabIcon + BottomBarController（构建、胶囊弹簧、切页、玻璃刷新）
 ConfigIO.java      配置导入导出（读 UiKit 取色，不持 Activity 字段）
 LogTools.java      日志纯函数：拦截统计、分段、域名用途注解（可单测）
 Misight.java       MiSight 事件库只读快照（su 复制 + 只读查询）
@@ -54,6 +55,10 @@ MainActivity（组装 + 状态）
   → Theme（纯数据）
 ```
 
+- 底栏是唯一持有 `MainActivity` 引用的部件（`BottomBarController.host`）：胶囊位置、当前页、
+  切页时的 scrollRoot 都要和页面状态联动，换成接口回调只是把同样的引用换个名字。
+  改底栏、回滚底栏都只动 `BottomBar.java`；`MainActivity` 只保留 `bar.build(rootFrame)`、
+  `bar.updateTabUi(...)`、`bar.onPageScrolled(...)`、`bar.scheduleGlassRefresh()` 四处调用。
 - 页面构建方法暂时留在 `MainActivity`：它们要读写 `groupSwitches`、`scopeHints`、`missingGroups` 等
   页面状态，搬到独立类会让每个字段变成 `host.xxx`，可读性反而下降。**除非状态先抽成对象，否则不拆页面。**
 - 新增界面元素：先看 `UiKit` 有没有现成的（card/row/section/button），没有再在 `UiKit` 加方法，
