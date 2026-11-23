@@ -1,6 +1,12 @@
 上报行为拦截（HyperPGuard）免责声明
 
-版本 1.17
+版本 1.18
+
+版本与适用范围
+
+「版本 1.18」是本文条款自身的修订号，与软件版本号无关。本声明适用于 HyperPGuard 的所有版本。
+条款可能随版本修订：应用内展示的是你当前安装版本内置的那一份，仓库里的 DISCLAIMER.txt 是最新版；
+两者不一致时，以仓库最新版为准。已停止更新的旧版本仍受其内置条款约束。
 
 一、用途定位
 
@@ -106,4 +112,4 @@ HyperPGuard is a personal privacy tool for Android devices you own and fully con
 
 This tool operates solely on the local device of its user and does not access, interfere with, or compromise any third party's network or system.
 
-生成日期：2026-11-22
+生效日期：2026-11-22
