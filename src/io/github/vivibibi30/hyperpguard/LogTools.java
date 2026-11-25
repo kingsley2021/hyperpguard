@@ -11,13 +11,16 @@ final class LogTools {
     /** 每段最多显示的行数 */
     private static final int LOG_SECTION_LIMIT = 20;
 
+    /** 日志里的拦截标记；按长度取，不写字面数字（写 25 会把域名首字母吃掉） */
+    private static final String BLOCK_MARK = "blocked by HyperPGuard: ";
+
     static String blockStats(String log) {
         java.util.Map<String, Integer> hosts = new java.util.LinkedHashMap<>();
         int miss = 0;
         for (String l : log.split("\n")) {
-            int i = l.indexOf("blocked by HyperPGuard: ");
+            int i = l.indexOf(BLOCK_MARK);
             if (i >= 0) {
-                String h = l.substring(i + 25).trim();
+                String h = l.substring(i + BLOCK_MARK.length()).trim();
                 int sp = h.indexOf(' ');
                 if (sp > 0) h = h.substring(0, sp);
                 Integer c = hosts.get(h);

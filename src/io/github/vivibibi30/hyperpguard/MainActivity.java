@@ -998,15 +998,6 @@ public class MainActivity extends Activity {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
-    private void execSu(String cmd) {
-        try {
-            Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
-            p.waitFor();
-        } catch (Throwable t) {
-            Logs.i("su failed: " + cmd + " -> " + t);
-        }
-    }
-
     /* ---------------- 环境检测 ---------------- */
 
     private boolean isInstalled(String pkg) {
@@ -1359,7 +1350,7 @@ public class MainActivity extends Activity {
                 .setMessage("会清空系统 logcat 的全部缓冲，包括其他应用的日志。"
                         + "模块配置、行为库和已保存的文件都不受影响。")
                 .setPositiveButton(T("清空"), (d, w) -> new Thread(() -> {
-                    execShell("logcat -b all -c");
+                    Shell.out("logcat -b all -c");
                     ui.post(() -> Toast.makeText(this, "已清空", Toast.LENGTH_SHORT).show());
                 }, "hyperpguard-clean-log").start())
                 .setNegativeButton(T("取消"), null)));
@@ -1701,7 +1692,7 @@ public class MainActivity extends Activity {
                 .setPositiveButton(T("清空"), (d2, w2) -> new Thread(() -> {
                     // 通配删掉主库与所有附属文件（-wal / -shm / -journal），
                     // 前缀唯一，不会影响目录里的其它文件
-                    execShell("am force-stop com.miui.securitycenter; "
+                    Shell.out("am force-stop com.miui.securitycenter; "
                             + "rm -f " + FRAUD_DB + "*");
                     ui.post(() -> {
                         Toast.makeText(this, T("已清空，安全中心下次启动会重建空库"),
@@ -1719,7 +1710,7 @@ public class MainActivity extends Activity {
     /** 只读计数：复制主库与 -wal 到私有目录，查 sqlite_sequence，不读任何记录内容 */
     private String readFraudDb() {
         String dir = getFilesDir().getAbsolutePath();
-        execShell("cp " + FRAUD_DB + " " + dir + "/fd.db 2>/dev/null; "
+        Shell.out("cp " + FRAUD_DB + " " + dir + "/fd.db 2>/dev/null; "
                 + "cp " + FRAUD_DB + "-wal " + dir + "/fd.db-wal 2>/dev/null; "
                 + "chmod 644 " + dir + "/fd.db 2>/dev/null; "
                 + "chmod 644 " + dir + "/fd.db-wal 2>/dev/null; echo ok");
@@ -1928,7 +1919,7 @@ public class MainActivity extends Activity {
                 sb.append("\n本地开关 ").append(local).append(" 项，系统设置 ").append(remote).append(" 项\n");
 
                 sb.append("\nLSPosed 加载记录：\n");
-                String lsp = execShell(
+                String lsp = Shell.out(
                         "f=$(ls -t /data/adb/lspd/log/modules_*.log 2>/dev/null | head -1); "
                                 + "[ -n \"$f\" ] && tail -n 4000 \"$f\""
                                 + " | grep -oE '\\([a-z0-9_.]+\\)\\[io\\.github\\.vivibibi30\\.hyperpguard'"
@@ -1936,12 +1927,12 @@ public class MainActivity extends Activity {
                 sb.append(lsp.trim().isEmpty() ? "（日志里没有本模块的加载记录）" : lsp.trim());
 
                 sb.append("\n安装失败记录：\n");
-                String fails = execShell(
+                String fails = Shell.out(
                         "logcat -d -b all -v time | grep -E 'HyperPGuard(\\( *[0-9]+\\))?: (stage|dispatch|net install|privacy install)' | tail -n 40");
                 sb.append(fails.trim().isEmpty() ? "（没有）" : fails.trim());
 
                 sb.append("\n最近 attach 日志：\n");
-                String attach = execShell(
+                String attach = Shell.out(
                         "logcat -d -b all -v time | grep -E 'HyperPGuard(\\( *[0-9]+\\))?: attach' | tail -n 15");
                 sb.append(attach.trim().isEmpty()
                         ? "（logcat 缓冲里没有，长时间运行后会被冲掉）"
@@ -1958,29 +1949,11 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    String execShell(String cmd) {
-        Process p = null;
-        try {
-            p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd});
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = br.readLine()) != null) sb.append(line).append('\n');
-            br.close();
-            p.waitFor();
-            return sb.toString();
-        } catch (Throwable t) {
-            return "执行失败：" + t;
-        } finally {
-            if (p != null) p.destroy();
-        }
-    }
-
     /** 一次 ps 取全部进程名（去掉 :remote 后缀），避免对每个包各起一次 su */
     private java.util.Set<String> runningProcesses() {
         java.util.Set<String> set = new java.util.HashSet<>();
-        String out = execShell("ps -A -o NAME 2>/dev/null");
-        if (out == null || out.trim().isEmpty()) out = execShell("ps -A 2>/dev/null");
+        String out = Shell.out("ps -A -o NAME 2>/dev/null");
+        if (out == null || out.trim().isEmpty()) out = Shell.out("ps -A 2>/dev/null");
         if (out == null) return set;
         for (String line : out.split("\n")) {
             String n = line.trim();
@@ -2009,9 +1982,7 @@ public class MainActivity extends Activity {
                          * 下次打开自然会读到新配置，force-stop 只会白丢它的后台状态。 */
                         msg = pkg + " 未在运行，下次启动会加载新配置";
                     } else {
-                        Process p = Runtime.getRuntime().exec(new String[]{"su", "-c",
-                                "am force-stop " + pkg});
-                        int code = p.waitFor();
+                        int code = Shell.run("am force-stop " + Shell.q(pkg));
                         msg = code == 0 ? (pkg + " 已重启") : (pkg + " 重启失败 code=" + code);
                     }
                 } catch (Throwable t) {
@@ -2066,14 +2037,13 @@ public class MainActivity extends Activity {
                 + (all.size() - live.size()) + " 个未运行，跳过）（需 root）",
                 Toast.LENGTH_LONG).show();
         final StringBuilder cmd = new StringBuilder();
-        for (String p : live) cmd.append("am force-stop ").append(p).append("; ");
+        for (String p : live) cmd.append("am force-stop ").append(Shell.q(p)).append("; ");
         new Thread(new Runnable() {
             @Override
             public void run() {
                 String msg;
                 try {
-                    Process p = Runtime.getRuntime().exec(new String[]{"su", "-c", cmd.toString()});
-                    int code = p.waitFor();
+                    int code = Shell.run(cmd.toString());
                     msg = "已重启 " + live.size() + " 个应用" + (code == 0 ? "" : "（code=" + code + "）");
                 } catch (Throwable t) {
                     msg = "重启失败：" + t;
@@ -2189,7 +2159,7 @@ public class MainActivity extends Activity {
     }
 
     private String execLogcat() {
-        String out = execShell(
+        String out = Shell.out(
                 "logcat -d -b all -v time | grep -E 'HyperPGuard(\\( *[0-9]+\\))?: |blocked by HyperPGuard' | tail -n 600");
         if (out.trim().isEmpty()) {
             return "没有记录。\n\n"

@@ -75,6 +75,16 @@ for key in sorted(set(defaults) - referenced):
 
 notes.append(f'默认值表 {len(defaults)} 项')
 
+# 8) 行数触发器：只提示，不判失败
+#
+# 行数不是拆分判据：纯常量表、纯查表、纯数据类行数再多也不拆（Config 的常量与
+# DEFAULTS 必须同源）。这里只把超过 350 行的文件点出来，提醒盘一次职责。
+TRIGGER = 350
+big = sorted(((len(t.split('\n')), n) for n, t in sources.items()), reverse=True)
+over = [f'{n} {c} 行' for c, n in big if c > TRIGGER]
+if over:
+    notes.append(f'超过 {TRIGGER} 行（触发器，不是拆分判据）：' + '、'.join(over))
+
 # 7) I18n 文案键不重复
 i18n = read('src/io/github/vivibibi30/hyperpguard/I18n.java')
 seen_keys = {}

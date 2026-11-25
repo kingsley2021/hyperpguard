@@ -75,28 +75,12 @@ final class Misight {
                     + "; cp -f " + SRC_DB + "-wal " + wal.getAbsolutePath() + " 2>/dev/null"
                     + "; cp -f " + SRC_DB + "-shm " + shm.getAbsolutePath() + " 2>/dev/null"
                     + "; true";
-            Process p;
-            try {
-                p = new ProcessBuilder("su", "-c", cmd)
-                        .redirectErrorStream(true).start();
-            } catch (Throwable t) {
+            Shell.Result r = Shell.exec(cmd);
+            if (r.code == Shell.NO_SU) {
                 return fail(s, "没有可用的 su（需要 root 授权）");
             }
-            try {
-                InputStream in = p.getInputStream();
-                byte[] buf = new byte[512];
-                while (in.read(buf) != -1) {
-                    // su 的输出（授权提示等）不影响结果，读空避免管道阻塞
-                }
-                if (!p.waitFor(20, TimeUnit.SECONDS)) {
-                    p.destroy();
-                    return fail(s, "su 超时，请确认已允许本应用获取 root");
-                }
-            } finally {
-                try {
-                    p.destroy();
-                } catch (Throwable ignored) {
-                }
+            if (r.code == Shell.TIMEOUT) {
+                return fail(s, "su 超时，请确认已允许本应用获取 root");
             }
             if (!db.isFile() || db.length() == 0) {
                 return fail(s, "复制失败：数据库不存在或没有读权限");

@@ -478,16 +478,7 @@ public final class Config {
         if (sb.length() == 0) return;
         final String dump = sb.toString();
         new Thread(() -> {
-            Process p = null;
-            try {
-                p = Runtime.getRuntime().exec(new String[]{"su", "-c",
-                        "settings put global " + GLOBAL_KEY + " '" + dump + "'"});
-                p.waitFor();
-            } catch (Throwable t) {
-                Logs.i("config sync fail: " + t);
-            } finally {
-                if (p != null) try { p.destroy(); } catch (Throwable ignored) { }
-            }
+            Shell.run("settings put global " + GLOBAL_KEY + " " + Shell.q(dump));
         }, "hyperpguard-config-sync").start();
     }
 

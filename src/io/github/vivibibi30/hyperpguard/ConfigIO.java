@@ -63,8 +63,8 @@ final class ConfigIO {
                     content.getBytes(java.nio.charset.StandardCharsets.UTF_8),
                     android.util.Base64.NO_WRAP);
             String path = "/sdcard/Download/hyperpguard-" + Config.VERSION + "-config.txt";
-            String out = a.execShell("echo '" + b64 + "' | base64 -d > " + path
-                    + " && chmod 644 " + path + " && echo ok");
+            String out = Shell.out("echo " + Shell.q(b64) + " | base64 -d > " + Shell.q(path)
+                    + " && chmod 644 " + Shell.q(path) + " && echo ok");
             final boolean ok = out.contains("ok");
             a.ui.post(() -> Toast.makeText(a,
                     ok ? "已导出到 " + path : "导出失败：" + out.trim(),
