@@ -99,4 +99,4 @@ ls -la HyperPGuard.apk
 echo
 echo "更新方式（务必覆盖安装，不要卸载）："
 echo "  adb install -r HyperPGuard.apk"
-echo "  # 手机上：su -c 'pm install -r /sdcard/Download/HyperPGuard-1.0.1.apk'"
+echo "  # 手机上：先放到手机可见目录，再 su -c 'pm install -r <apk 路径>'"
