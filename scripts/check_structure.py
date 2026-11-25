@@ -75,6 +75,15 @@ for key in sorted(set(defaults) - referenced):
 
 notes.append(f'默认值表 {len(defaults)} 项')
 
+# 7b) scope.list 里的包都要在 HookEntry 的 handlers 表里有处理函数
+hook = read('src/io/github/vivibibi30/hyperpguard/HookEntry.java')
+mapped = set(re.findall(r'm\.put\("([^"]+)"', hook))
+for pkg in pkgs:
+    if pkg not in mapped:
+        problems.append(f'scope.list 里的 {pkg} 在 HookEntry.handlers 里没有处理函数')
+for pkg in sorted(mapped - set(pkgs)):
+    problems.append(f'HookEntry.handlers 里的 {pkg} 不在 scope.list 中')
+
 # 8) 行数触发器：只提示，不判失败
 #
 # 行数不是拆分判据：纯常量表、纯查表、纯数据类行数再多也不拆（Config 的常量与

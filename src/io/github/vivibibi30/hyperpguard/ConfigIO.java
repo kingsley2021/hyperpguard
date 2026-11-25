@@ -9,6 +9,7 @@ import android.widget.Toast;
 /**
  * 配置导入导出：从 MainActivity 拆出。
  * 读取 Settings.Global 的配置串 + 作用域清单导出到 Download；从剪贴板导入并热重载。
+ * 负责：配置文本的导出与导入校验。不负责：配置存储（Config）与界面布局。
  */
 final class ConfigIO {
 

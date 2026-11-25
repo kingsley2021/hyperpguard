@@ -538,6 +538,9 @@ import android.widget.FrameLayout;
 
 
 /** 底栏构建与交互：胶囊弹簧、切页、玻璃刷新。改底栏只动这个文件。 */
+/**
+ * 负责：底栏结构、分页容器 Stage、胶囊弹簧与玻璃刷新。不负责：页面内容与开关状态（MainActivity / PageState）。
+ */
 final class BottomBarController {
 
     private final MainActivity host;
@@ -778,8 +781,8 @@ final class BottomBarController {
     }
 
     private void selectTab(int idx) {
-        if (host.pageScrolls.isEmpty()) return;
-        int i = Math.max(0, Math.min(host.pageScrolls.size() - 1, idx));
+        if (host.page.pageScrolls.isEmpty()) return;
+        int i = Math.max(0, Math.min(host.page.pageScrolls.size() - 1, idx));
         if (stage != null) stage.springToPageFromBar(i);
         updateTabUi(i);
     }
@@ -790,7 +793,7 @@ final class BottomBarController {
             // 同一页会被调用两次（滑动过半一次、吸附结束一次）。第二次只认胶囊目标，
             // 不再重设 typeface / 颜色：重建 Typeface 会让文字重排、底栏图标闪一下，
             // 再 drivePill(press) 还会让胶囊多放大一次。
-            if (idx < host.pageScrolls.size()) host.scrollRoot = host.pageScrolls.get(idx);
+            if (idx < host.page.pageScrolls.size()) host.scrollRoot = host.page.pageScrolls.get(idx);
             drivePill(pillXForIndex(idx), false);
             return;
         }
@@ -807,7 +810,7 @@ final class BottomBarController {
                 tabLabels.get(i).setTypeface(null, on ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
             }
         }
-        if (idx < host.pageScrolls.size()) host.scrollRoot = host.pageScrolls.get(idx);
+        if (idx < host.page.pageScrolls.size()) host.scrollRoot = host.page.pageScrolls.get(idx);
         drivePill(pillXForIndex(idx));
         if (glassBackdrop != null) glassBackdrop.postDelayed(this::updateGlassBackdrop, 360);
     }

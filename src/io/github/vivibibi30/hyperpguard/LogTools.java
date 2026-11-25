@@ -2,6 +2,7 @@ package io.github.vivibibi30.hyperpguard;
 
 /**
  * 日志解析：拦截统计、分段与域名用途注解。纯函数，不依赖 Activity。
+ * 负责：日志文本的拦截统计、分段与域名注解（纯函数）。不负责：读日志（Shell）与展示（MainActivity）。
  */
 final class LogTools {
 

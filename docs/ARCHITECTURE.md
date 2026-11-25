@@ -19,7 +19,7 @@
 ## 二、文件职责
 
 ```
-HookEntry.java     入口；onPackageReady 后按包名分发到各层
+HookEntry.java     入口；onPackageReady 后查 handlers 表（包名 → 处理函数）分发到各层
 Config.java        开关常量、配置通道（Settings.Global 的 hyperpguard_conf）
 I18n.java          界面英文查表（中文是唯一来源，查不到原样返回）
 NetGuard.java      网络层与规则匹配
@@ -34,6 +34,7 @@ Hooks.java         公共 hook 工具
 PgSwitch.java      设置页开关（自绘，点击可由外部接管）
 Logs.java          统一日志标签 HyperPGuard
 MainActivity.java  设置界面（程序化构建，无 layout 资源）：生命周期、三页组装、作用域与弹窗
+PageState.java     三页共享的界面状态：分组开关、作用域提示、缺组件、滚动容器
 
 界面层（依赖单向，均不反向依赖 MainActivity）：
 Theme.java         主题色板（bg/card/line/text/sub/accent/night），改配色只动这里
@@ -73,14 +74,14 @@ MainActivity（组装 + 状态）
 
 1. **`META-INF/xposed/scope.list`**：加包名。staticScope 模块，覆盖安装后需要在 LSPosed 里重新确认作用域，旧进程不会自动补注入
 2. **`Config.java`**：加分组开关 `K_G_X` 与子项常量；默认值登记到 `Config.DEFAULTS`，调用点只写 `Config.on(K)` / `Config.def(K)`，不要写字面量（`scripts/check_structure.py` 会报）
-3. **`HookEntry.dispatch()`**：加 `if ("包名".equals(pkg)) { ... }` 分支，先按分组开关 return，再调各层
+3. **`HookEntry.buildHandlers()`**：加一行 `m.put("包名", this::h_xxx)`，处理函数写在 `dispatch` 下面，先按分组开关 return，再调各层；`scripts/check_structure.py` 会校验 scope.list 与这张表一一对应
 4. **`MainActivity.GROUPS`**：加 `Group` 与 `Item`，文案过 `T()`；同时在 `I18n.java` 补英文
 5. **`docs/RULES.md`**：写清判据（域名 / 方法签名 / 表名）与默认开关的理由
 6. **验证**：`sh build.sh` → 装到设备 → 在 LSPosed 确认作用域 → 看 `attach <包>` 与对应 `hook ok` / `X(host)` 日志
 
 方法层按「一个上报 SDK / 一个组件」自成文件（`XxxHooks.java`），不要堆进 `HookEntry`。
 判断依据是职责与开关组的边界，不是行数：新代码由独立开关组控制、或会被另一组包名复用、
-或能整文件回滚，就该单独建文件。同一文件里出现第二类职责（规则匹配 + 界面构建 + 数据解析混在一起）时才拆。
+或能整文件回滚、或有没有反向依赖，就该单独建文件。同一文件里出现第二类职责（规则匹配 + 界面构建 + 数据解析混在一起）时才拆。
 
 ## 四、规则判据的写法
 
@@ -133,9 +134,9 @@ CI 在 tag 上做三件事：构建 APK、源码仓建 Release、同步到分发
 
 | 文件 | 行数 | 里面是什么 | 结论 |
 |---|---|---|---|
-| `MainActivity.java` | 2530 | 生命周期、三页构建、九个弹窗、作用域、自检、更新检查 | 混了两类：界面组装 + 系统命令。系统命令已全部收口到 `Shell`（原先 6 处各自 `exec`），配置读写、日志解析、导图、事件库、底栏也已各自成类；剩下的页面构建共享 `groupSwitches / scopeHints / missingGroups / pageScrolls` 四个状态字段，抽成 `PageState` 之前不拆 |
+| `MainActivity.java` | 2530 | 生命周期、三页构建、九个弹窗、作用域、自检、更新检查 | 混了两类：界面组装 + 系统命令。系统命令已收口到 `Shell`，配置读写、日志解析、导图、事件库、底栏已各自成类；三页共享的四个状态字段已抽成 `PageState`，页面方法要搬走时传这个对象即可 |
 | `BottomBar.java` | 1007 | Stage 分页 + 胶囊弹簧 + 玻璃刷新 + 三个 tab | 单个部件的整体，拆开会让弹簧、手势、玻璃刷新互相持有半份状态，保留 |
-| `HookEntry.java` | 789 | 21 个包的分发与逐段兜底 | 结构上是「包名 → 层」的分发表，可以收成数据表；但验证只能靠真机逐包看日志，留到下次加组件时顺带做 |
+| `HookEntry.java` | 826 | `handlers` 表（21 个包 → 处理函数）+ 逐段兜底 | 已收成数据表：加组件只加一行，处理函数体与原 `if` 分支逐行一致（文本比对 21/21 通过） |
 | `Config.java` | 688 | 开关常量、`DEFAULTS` 表、旧键迁移 | 常量与默认值必须同源（1.6.12 的默认值错位就是这么来的），保留 |
 | `I18n.java` | 352 | 中文 → 英文查表 | 纯查表，保留 |
 

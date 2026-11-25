@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
  * UI 侧通过普通 SharedPreferences 读写；hook 侧在新 API 下无法直接读应用私有目录，
  * 因此使用各规则的默认值（与 UI 的默认值一致）。细粒度开关由「应用是否在作用域内」
  * 加默认规则共同决定。
+ * 负责：开关常量、默认值表、配置读写与旧键迁移。不负责：界面渲染与 hook 安装。
  */
 public final class Config {
 

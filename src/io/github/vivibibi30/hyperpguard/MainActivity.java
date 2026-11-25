@@ -43,6 +43,7 @@ import java.util.Map;
 /**
  * 卡片式开关面板。
  * 每组一个「启用」总开关（等同作用域开关），关闭时该组子项全部置灰不可操作。
+ * 负责：生命周期、三页组装、弹窗、系统命令的调用入口。不负责：底栏与分页（BottomBar）、色板与组件工厂（Theme / UiKit）、配置读写（Config / ConfigIO）、日志解析（LogTools）。
  */
 public class MainActivity extends Activity {
 
@@ -226,8 +227,6 @@ public class MainActivity extends Activity {
     private final Map<String, List<Switch>> childSwitches = new LinkedHashMap<>();
     private final Map<String, List<LinearLayout>> childRows = new LinkedHashMap<>();
     /** 组 key → 组开关 */
-    private final Map<String, Switch> groupSwitches = new LinkedHashMap<>();
-    private final Map<String, TextView> scopeHints = new LinkedHashMap<>();
     ScrollView scrollRoot;
     private AlertDialog shownDialog;
     private int appliedNight = -1;
@@ -248,6 +247,9 @@ public class MainActivity extends Activity {
     private boolean hotReloadRunning = false;
     private boolean hotReloadQueued = false;
     /** 框架不支持热重载时只提示一次，别每点一个开关弹一遍 */
+    /** 三页共享的界面状态（开关视图、作用域提示、缺组件、滚动容器） */
+    final PageState page = new PageState();
+
     private boolean hotReloadHinted = false;
     private final Runnable hotReloadTask = this::flushHotReload;
 
@@ -383,14 +385,12 @@ public class MainActivity extends Activity {
 
     /* 本机没有安装的组件：作用域永远加不上，提示要常显、点击要挡掉，
      * 否则会陷入「点加入 → 失败 → 开关回滚」的循环（issue #26）。 */
-    private final java.util.Set<String> missingGroups = new java.util.HashSet<>();
 
     private final java.util.List<SearchHit> searchHits = new ArrayList<>();
     private android.widget.EditText searchBox;
     private TextView searchEmpty;
     private String searchQuery = "";
 
-    final java.util.List<ScrollView> pageScrolls = new ArrayList<>();
     private Stage stage;
     private BottomBarController bar;
 
@@ -422,13 +422,13 @@ public class MainActivity extends Activity {
         rootFrame.addView(stage, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        pageScrolls.clear();
-        pageScrolls.add(buildPage(stage, buildGeneralPage()));
-        pageScrolls.add(buildPage(stage, buildComponentsPage()));
-        pageScrolls.add(buildPage(stage, buildSettingsPage()));
-        stage.setPageCount(pageScrolls.size());
+        page.pageScrolls.clear();
+        page.pageScrolls.add(buildPage(stage, buildGeneralPage()));
+        page.pageScrolls.add(buildPage(stage, buildComponentsPage()));
+        page.pageScrolls.add(buildPage(stage, buildSettingsPage()));
+        stage.setPageCount(page.pageScrolls.size());
         // 深浅色切换会重建界面，必须把当前页还原回去，否则会跳回第一页
-        bar = new BottomBarController(this, stage, pageScrolls);
+        bar = new BottomBarController(this, stage, page.pageScrolls);
         stage.resetTo(bar.currentTab());
         bar.build(rootFrame);
 
@@ -547,7 +547,7 @@ public class MainActivity extends Activity {
             c.addView(groupHeader(g, rows));
             if (g.note != null) c.addView(groupNote(g.note));
             boolean present = isInstalled(g.pkg);
-            if (!present) missingGroups.add(g.pkg);
+            if (!present) page.missingGroups.add(g.pkg);
             TextView scopeHint = new TextView(this);
             scopeHint.setText(T(present ? "未在作用域，点此加入" : "本机未安装该组件"));
             scopeHint.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13);
@@ -558,7 +558,7 @@ public class MainActivity extends Activity {
                 scopeHint.setOnClickListener(v -> ensureInScope(g));
             }
             c.addView(scopeHint);
-            scopeHints.put(g.pkg, scopeHint);
+            page.scopeHints.put(g.pkg, scopeHint);
             for (Item it : g.items) {
                 android.view.View dv = null;
                 if (c.getChildCount() > 0) {
@@ -1041,14 +1041,14 @@ public class MainActivity extends Activity {
 
     /** animate=false 用于作用域同步与回滚，避免状态还没确认就先播放动画 */
     private void setGroupUi(Group g, boolean on, boolean animate) {
-        TextView scopeHint = scopeHints.get(g.pkg);
+        TextView scopeHint = page.scopeHints.get(g.pkg);
         if (scopeHint != null) {
-            boolean missing = missingGroups.contains(g.pkg);
+            boolean missing = page.missingGroups.contains(g.pkg);
             scopeHint.setVisibility(missing || !on
                     ? android.view.View.VISIBLE : android.view.View.GONE);
         }
         updatingSwitch = true;
-        Switch gs = groupSwitches.get(g.pkg);
+        Switch gs = page.groupSwitches.get(g.pkg);
         if (gs instanceof PgSwitch) {
             PgSwitch pg = (PgSwitch) gs;
             if (animate) {
@@ -1236,7 +1236,7 @@ public class MainActivity extends Activity {
                 nightMode ? 0xFF3A3A3C : 0xFFE9E9EB);
         sw.setLayoutParams(new LinearLayout.LayoutParams(dp(49), dp(28)));
         sw.setLayoutParams(new LinearLayout.LayoutParams(dp(49), dp(28)));
-        groupSwitches.put(g.pkg, sw);
+        page.groupSwitches.put(g.pkg, sw);
         sw.setChecked(Config.get(this, g.key, Config.def(g.key)));
         if (sw instanceof PgSwitch) {
             // 点击只上报目标状态，开关本身不动；等作用域真的变了再切

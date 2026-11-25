@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  *   event_daily  按事件聚合（daily_cnt、over_cnt、last_happen_time）
  *   upload       上传记录（有行说明已有数据出过本机）
  *   version      库版本
+ * 负责：MiSight 事件库的只读快照与统计。不负责：页面展示与 root 命令执行（Shell）。
  */
 final class Misight {
 

@@ -9,11 +9,14 @@ import io.github.libxposed.api.XposedModuleInterface;
 /**
  * 模块入口（libxposed 新 API）。
  *
+ * 负责：按包名把注入分发给各拦截层（handlers 表：包名 → 处理函数），每层单独兜异常。
+ * 不负责：具体规则与 hook 细节（NetGuard / PrivacyApis / 各 XxxHooks）。
+ *
  * 拦截分四层，各自独立成文件：
  *   NetGuard      网络出口（URL / InetAddress / Socket）
  *   PrivacyApis   数据来源（应用列表 / 使用记录 / 设备标识 / 短信 / XMSF 广播）
- *   AnalyticsHooks 统计方法层（固定目标 + 签名扫描）
- *   XsofHooks     XSOF Provider / AIDL / 写库 / 评分 + MRM
+ *   CaptureHooks  行为库写入与静默录屏
+ *   AnalyticsHooks / XsofHooks / MsaHooks / TrackHooks / ImHooks   方法层
  */
 public class HookEntry extends XposedModule {
 
@@ -297,8 +300,45 @@ public class HookEntry extends XposedModule {
         }
     }
 
+    /** 包名 → 处理函数。加组件只在这张表里加一行，不再依赖 if 分支顺序。 */
+    private final java.util.Map<String, Handler> handlers = buildHandlers();
+
+    private interface Handler {
+        void handle(String pkg, ClassLoader cl);
+    }
+
+    private java.util.Map<String, Handler> buildHandlers() {
+        java.util.Map<String, Handler> m = new java.util.LinkedHashMap<>();
+        m.put("com.mobiletools.systemhelper", this::h_com_mobiletools_systemhelper);
+        m.put("com.miui.guardprovider", this::h_com_miui_guardprovider);
+        m.put("com.miui.dmregservice", this::h_com_miui_dmregservice);
+        m.put("com.miui.misightservice", this::h_com_miui_misightservice);
+        m.put("com.xiaomi.trustservice", this::h_com_xiaomi_trustservice);
+        m.put("com.miui.analytics", this::h_com_miui_analytics);
+        m.put("com.xiaomi.aiasst.vision", this::h_com_xiaomi_aiasst_vision);
+        m.put("com.miui.securitycenter", this::h_com_miui_securitycenter);
+        m.put("com.miui.systemAdSolution", this::h_com_miui_systemAdSolution);
+        m.put("com.sohu.inputmethod.sogou.xiaomi", this::h_com_sohu_inputmethod_sogou_xiaomi);
+        m.put("com.xiaomi.type", this::h_com_xiaomi_type);
+        m.put("com.baidu.input_mi", this::h_com_baidu_input_mi);
+        m.put("com.iflytek.inputmethod.miui", this::h_com_iflytek_inputmethod_miui);
+        m.put("com.tencent.wetype", this::h_com_tencent_wetype);
+        m.put("com.bytedance.android.doubaoime", this::h_com_bytedance_android_doubaoime);
+        m.put("com.xiaomi.registration", this::h_com_xiaomi_registration);
+        m.put("com.miui.packageinstaller", this::h_com_miui_packageinstaller);
+        m.put("com.xiaomi.market", this::h_com_xiaomi_market);
+        m.put("com.xiaomi.xmsf", this::h_com_xiaomi_xmsf);
+        m.put("com.miui.wmsvc", this::h_com_miui_wmsvc);
+        m.put("com.xiaomi.aicr", this::h_com_xiaomi_aicr);
+        return m;
+    }
+
     private void dispatch(String pkg, ClassLoader cl) {
-        if ("com.mobiletools.systemhelper".equals(pkg)) {
+        Handler h = handlers.get(pkg);
+        if (h != null) h.handle(pkg, cl);
+    }
+
+    private void h_com_mobiletools_systemhelper(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_SYSHELPER)) return;
             Logs.i("attach systemhelper");
             privacySafe(cl, pkg, false, false, true, false, false);
@@ -312,9 +352,9 @@ public class HookEntry extends XposedModule {
             if (Config.on(Config.K_SYSHELPER)) r.add(new NetGuard.Rule("dm.wo.com.cn"));
             netSafe(cl, "systemhelper", r, Config.on(Config.K_SYSHELPER_ALLNET));
             return;
-        }
+    }
 
-        if ("com.miui.guardprovider".equals(pkg)) {
+    private void h_com_miui_guardprovider(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_GUARD)) return;
             List<NetGuard.Rule> r = new ArrayList<>();
             if (Config.on(Config.K_GUARD_APPLIST)) r.add(new NetGuard.Rule("flash.sec.miui.com"));
@@ -331,9 +371,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "guardprovider", r, false);
             return;
-        }
+    }
 
-        if ("com.miui.dmregservice".equals(pkg)) {
+    private void h_com_miui_dmregservice(String pkg, ClassLoader cl) {
             // 移动 DM 组件：App 清单、SIM 标识、基站、Wi-Fi/蓝牙扫描、BSSID
             if (!Config.on(Config.K_G_DMREG)) return;
             Logs.i("attach dmregservice");
@@ -344,9 +384,9 @@ public class HookEntry extends XposedModule {
                 netSafe(cl, "dmregservice", r, false);
             }
             return;
-        }
+    }
 
-        if ("com.miui.misightservice".equals(pkg)) {
+    private void h_com_miui_misightservice(String pkg, ClassLoader cl) {
             // 系统诊断：日志上传只在用户主动反馈或售后远程诊断时触发
             if (!Config.on(Config.K_G_MISIGHT)) return;
             Logs.i("attach misightservice");
@@ -365,9 +405,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "misightservice", r, false);
             return;
-        }
+    }
 
-        if ("com.xiaomi.trustservice".equals(pkg)) {
+    private void h_com_xiaomi_trustservice(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_TRUST)) return;
             Logs.i("attach trustservice");
             if (Config.on(Config.K_TRUST)) stage("mrm", () -> xsof.mrm(cl));
@@ -378,9 +418,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "trustservice", r, false);
             return;
-        }
+    }
 
-        if ("com.miui.analytics".equals(pkg)) {
+    private void h_com_miui_analytics(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_ANALYTICS)) return;
             if (!Config.on(Config.K_ANALYTICS)) return;
             Logs.i("attach analytics");
@@ -399,9 +439,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "analytics", r, Config.on(Config.K_ANALYTICS_ALLNET));
             return;
-        }
+    }
 
-        if ("com.xiaomi.aiasst.vision".equals(pkg)) {
+    private void h_com_xiaomi_aiasst_vision(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_AIASST)) return;
             if (!Config.on(Config.K_AIASST)) return;
             Logs.i("attach aiasst.vision");
@@ -409,9 +449,9 @@ public class HookEntry extends XposedModule {
             r.add(new NetGuard.Rule("xiaomixiaoai.com", "/speech/"));
             netSafe(cl, "aiasst", r, false);
             return;
-        }
+    }
 
-        if ("com.miui.securitycenter".equals(pkg)) {
+    private void h_com_miui_securitycenter(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_SECCENTER)) return;
             Logs.i("attach securitycenter");
             // 设备标识默认放行：安全中心要靠 IMSI / ICCID / 手机号查套餐与流量
@@ -461,10 +501,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "securitycenter", r, false);
             return;
-        }
+    }
 
-
-        if ("com.miui.systemAdSolution".equals(pkg)) {
+    private void h_com_miui_systemAdSolution(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_MSA)) return;
             Logs.i("attach msa");
             if (Config.on(Config.K_MSA_USAGE)) {
@@ -479,9 +518,9 @@ public class HookEntry extends XposedModule {
             // 广告 SDK 失败会重试，域名层默认不拦，保留自定义规则入口
             netSafe(cl, "msa", new ArrayList<>(), false);
             return;
-        }
+    }
 
-        if ("com.sohu.inputmethod.sogou.xiaomi".equals(pkg)) {
+    private void h_com_sohu_inputmethod_sogou_xiaomi(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_IME_SOGOU)) return;
             Logs.i("attach sogou ime");
             if (Config.on(Config.K_SOGOU_CLIPBOARD)) {
@@ -495,9 +534,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "sogou", r, false);
             return;
-        }
+    }
 
-        if ("com.xiaomi.type".equals(pkg)) {
+    private void h_com_xiaomi_type(String pkg, ClassLoader cl) {
             // 小米输入法：内嵌 OneTrack；自研击键统计（duration_s / key_cnt / action_list）
             // 类名混淆且没有稳定域名，暂不覆盖，见 docs/RULES.md
             if (!Config.on(Config.K_G_IME_MITYPE)) return;
@@ -519,9 +558,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "mitype", r, false);
             return;
-        }
+    }
 
-        if ("com.baidu.input_mi".equals(pkg)) {
+    private void h_com_baidu_input_mi(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_IME_BAIDU)) return;
             Logs.i("attach baidu ime");
             if (Config.on(Config.K_BAIDU_STATS)) {
@@ -531,17 +570,18 @@ public class HookEntry extends XposedModule {
                 stage("baiduSpeech", () -> ImHooks.baiduSpeech(this, cl));
             }
             return;
-        }
+    }
 
-        if ("com.iflytek.inputmethod.miui".equals(pkg)) {
+    private void h_com_iflytek_inputmethod_miui(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_IME_IFLYTEK)) return;
             Logs.i("attach iflytek ime");
             if (Config.on(Config.K_IFLYTEK_STATS)) {
                 stage("iflytekStats", () -> ImHooks.iflytekStats(this, cl));
             }
             return;
-        }
-        if ("com.tencent.wetype".equals(pkg)) {
+    }
+
+    private void h_com_tencent_wetype(String pkg, ClassLoader cl) {
             /* 微信输入法。类可能被 LSPatch 之类的注入器重新装载，
              * 方法层全部走 stage() 兜异常，失败只记 miss，不影响域名层。 */
             if (!Config.on(Config.K_G_IME_WETYPE)) return;
@@ -568,9 +608,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "wetype", r, false);
             return;
-        }
+    }
 
-        if ("com.bytedance.android.doubaoime".equals(pkg)) {
+    private void h_com_bytedance_android_doubaoime(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_IME_DOUBAO)) return;
             Logs.i("attach doubao ime");
             List<NetGuard.Rule> r = new ArrayList<>();
@@ -594,9 +634,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "doubao", r, false);
             return;
-        }
+    }
 
-        if ("com.xiaomi.registration".equals(pkg)) {
+    private void h_com_xiaomi_registration(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_REGISTRATION)) return;
             Logs.i("attach registration");
             privacySafe(cl, pkg, false, false, true, true, false);
@@ -605,9 +645,9 @@ public class HookEntry extends XposedModule {
             if (Config.on(Config.K_REG_TYPDM)) r.add(new NetGuard.Rule("typdm.tydevice.com"));
             netSafe(cl, "registration", r, false);
             return;
-        }
+    }
 
-        if ("com.miui.packageinstaller".equals(pkg)) {
+    private void h_com_miui_packageinstaller(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_PKG)) return;
             boolean pathOn = Config.on(Config.K_PATH);
             List<NetGuard.Rule> r = new ArrayList<>();
@@ -723,9 +763,9 @@ public class HookEntry extends XposedModule {
             Logs.i("attach packageinstaller, rules=" + r.size());
             netSafe(cl, "packageinstaller", r, false);
             return;
-        }
+    }
 
-        if ("com.xiaomi.market".equals(pkg)) {
+    private void h_com_xiaomi_market(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_AD_MARKET)) return;
             Logs.i("attach market");
             List<NetGuard.Rule> r = new ArrayList<>();
@@ -735,9 +775,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "market", r, false);
             return;
-        }
+    }
 
-        if ("com.xiaomi.xmsf".equals(pkg)) {
+    private void h_com_xiaomi_xmsf(String pkg, ClassLoader cl) {
             if (!Config.on(Config.K_G_AD_XMSF)) return;
             Logs.i("attach xmsf");
             List<NetGuard.Rule> r = new ArrayList<>();
@@ -747,9 +787,9 @@ public class HookEntry extends XposedModule {
             }
             netSafe(cl, "xmsf", r, false);
             return;
-        }
+    }
 
-        if ("com.miui.wmsvc".equals(pkg)) {
+    private void h_com_miui_wmsvc(String pkg, ClassLoader cl) {
             // 网络管理服务：诊断类 OneTrack 埋点（tracking.miui.com / sdkconfig）
             if (!Config.on(Config.K_G_WM)) return;
             Logs.i("attach wmsvc");
@@ -758,9 +798,9 @@ public class HookEntry extends XposedModule {
             if (Config.on(Config.K_WM_TRACK)) trackHosts(r);
             netSafe(cl, "wmsvc", r, false);
             return;
-        }
+    }
 
-        if ("com.xiaomi.aicr".equals(pkg)) {
+    private void h_com_xiaomi_aicr(String pkg, ClassLoader cl) {
             // AI 内容识别组件：OneTrack 埋点；不影响本地识别与模型推理
             if (!Config.on(Config.K_G_AICR)) return;
             Logs.i("attach aicr");
@@ -769,7 +809,6 @@ public class HookEntry extends XposedModule {
             if (Config.on(Config.K_AICR_TRACK)) trackHosts(r);
             netSafe(cl, "aicr", r, false);
             return;
-        }
     }
 
     /** OneTrack 的上报域名：tracking 与 sdkconfig 各区域都各有一条 */
