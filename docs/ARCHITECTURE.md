@@ -4,14 +4,14 @@
 
 ## 一、拦截分层
 
-模块在四个位置拦截，彼此独立：
+模块在四个位置拦截，彼此独立（方法层按组件拆成五个文件）：
 
 | 层 | 文件 | 说明 |
 |---|---|---|
 | 网络出口 | `NetGuard.java` | `URL#openConnection`、`InetAddress`、`Socket` 构造/`connect`、okhttp `Dns`；规则为「域名后缀 + 可选路径前缀」 |
 | 隐私 API | `PrivacyApis.java` | 应用列表、使用记录、设备标识、短信、XMSF 代发广播 |
 | 本地存储 | `CaptureHooks.java` | 行为库八张表的 `SQLiteDatabase` 写入、静默录屏 |
-| 方法层 | `XsofHooks.java`、`MsaHooks.java`、`AnalyticsHooks.java` | 按结构或签名定位方法后直接返回常量 |
+| 方法层 | `XsofHooks.java`、`MsaHooks.java`、`AnalyticsHooks.java`、`TrackHooks.java`、`ImHooks.java` | 按结构或签名定位方法后直接返回常量；`TrackHooks` 统一收口组件内嵌的 OneTrack 埋点，`ImHooks` 管四个预装输入法的统计与剪贴板记录 |
 
 `Hooks.java` 是公共工具：`ret`、`retAllByName`、`classNames`、`hookBySignature`、`customMethods`。
 `hookBySignature` 逐类兜住 `getDeclaredMethods()` 的异常——安全中心里有类的方法签名引用 `javax.lang.model.*`，不兜会整轮中断。
@@ -28,6 +28,8 @@ CaptureHooks.java  行为库写入与静默录屏
 XsofHooks.java     XSOF 四层 + MRM
 MsaHooks.java      MSA 使用画像与 OneTrack
 AnalyticsHooks.java 统计方法层
+TrackHooks.java    组件内嵌 OneTrack 埋点的统一收口（track / adTrack 系列 void 方法）
+ImHooks.java       预装输入法的统计与剪贴板记录（搜狗 / 百度 / 讯飞 / 小米）
 Hooks.java         公共 hook 工具
 PgSwitch.java      设置页开关（自绘，点击可由外部接管）
 Logs.java          统一日志标签 HyperPGuard
@@ -70,7 +72,7 @@ MainActivity（组装 + 状态）
 以新增「组件 X」为例，六处改动：
 
 1. **`META-INF/xposed/scope.list`**：加包名。staticScope 模块，覆盖安装后需要在 LSPosed 里重新确认作用域，旧进程不会自动补注入
-2. **`Config.java`**：加分组开关 `K_G_X` 与子项常量；默认值写在使用处（`Config.on(K, true/false)`），不落盘
+2. **`Config.java`**：加分组开关 `K_G_X` 与子项常量；默认值登记到 `Config.DEFAULTS`，调用点只写 `Config.on(K)` / `Config.def(K)`，不要写字面量（`scripts/check_structure.py` 会报）
 3. **`HookEntry.dispatch()`**：加 `if ("包名".equals(pkg)) { ... }` 分支，先按分组开关 return，再调各层
 4. **`MainActivity.GROUPS`**：加 `Group` 与 `Item`，文案过 `T()`；同时在 `I18n.java` 补英文
 5. **`docs/RULES.md`**：写清判据（域名 / 方法签名 / 表名）与默认开关的理由
