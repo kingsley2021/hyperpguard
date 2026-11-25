@@ -879,6 +879,18 @@ final class BottomBarController {
         return Math.max(0, Math.min(n - 1, Math.round(pillTarget)));
     }
 
+    /** 手指 x 落在第几格：与 pillXForTouch 同一套坐标，直接四舍五入，不依赖动画状态 */
+    private int tabIndexForTouch(float touchX) {
+        int cell = barCellWidth();
+        if (cell <= 0) return nearestTab();
+        return Math.round(pillXForTouch(touchX));
+    }
+
+    /** 手指是否按在底栏上（页面吸附结束时用它判断该不该抢选中态） */
+    boolean isTouching() {
+        return barTouching;
+    }
+
     void build(FrameLayout rootFrame) {
         FrameLayout barShell = new FrameLayout(host);
         GradientDrawable glass = new GradientDrawable();
@@ -958,10 +970,14 @@ final class BottomBarController {
                     return true;
                 case android.view.MotionEvent.ACTION_UP:
                 case android.view.MotionEvent.ACTION_CANCEL:
-                    selectTab(nearestTab());
+                    /* 用抬手位置算目标格，不读 pillTarget：pillTarget 在按下期间可能被
+                     * 上一段页面吸附动画的 onPageSelected 改掉（那一刻正在按着，看不出变化），
+                     * 于是松手会「切到当前页」，表现就是胶囊走一段又弹回来、页面没变。 */
+                    int tapped = tabIndexForTouch(e.getX());
+                    barTouching = false;
+                    selectTab(tapped);
                     releasePillAfterSettle();
                     barDragging = false;
-                    barTouching = false;
                     return true;
             }
             return true;
@@ -972,8 +988,10 @@ final class BottomBarController {
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         // 固定高度：MATCH_PARENT 会把 WRAP_CONTENT 的底栏容器撑满全屏
+        /* 铺满 64dp 外壳：胶囊只有 56dp 高，原来触摸层也只 56dp，
+         * 点在胶囊下沿那 8dp 里没有任何反应。 */
         barShell.addView(touchLayer, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, host.dp(56)));
+                ViewGroup.LayoutParams.MATCH_PARENT, host.dp(64)));
 
         FrameLayout barWrap = new FrameLayout(host);
         barWrap.setClipChildren(false);      // 否则 elevation 阴影被容器裁掉

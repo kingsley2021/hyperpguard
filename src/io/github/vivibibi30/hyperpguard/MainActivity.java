@@ -411,7 +411,9 @@ public class MainActivity extends Activity {
         stage.setPageListener(new Stage.PageListener() {
             @Override
             public void onPageSelected(int index) {
-                bar.updateTabUi(index);
+                /* 手指正按着底栏时，上一段页面吸附动画结束不能改选中态：
+                 * 它会把手点击的那一格覆盖掉，松手就变成「切回当前页」。 */
+                if (!bar.isTouching()) bar.updateTabUi(index);
             }
 
             @Override
