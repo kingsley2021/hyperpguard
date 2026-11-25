@@ -2413,8 +2413,8 @@ public class MainActivity extends Activity {
         ScrollView sv = new ScrollView(this);
         sv.addView(tv);
 
+        // 正文首行就是「上报行为拦截（HyperPGuard）免责声明」，再加 setTitle 会重复一行
         showStyled(new AlertDialog.Builder(this)
-                .setTitle(T("免责声明"))
                 .setView(sv)
                 .setPositiveButton(T("我知道了"), null));
     }
