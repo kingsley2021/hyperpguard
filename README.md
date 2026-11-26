@@ -1,28 +1,36 @@
-<div align="center">
+<p align="center">
+  <img src="res/mipmap-xxxhdpi/ic_launcher.png" width="132" height="132" alt="HyperPGuard">
+</p>
 
-# HyperPGuard
+<h1 align="center">HyperPGuard</h1>
 
-![license](https://img.shields.io/badge/license-GPL--3.0-blue)
-![language](https://img.shields.io/badge/language-Java-orange)
-![release](https://img.shields.io/github/v/release/vivibibi30/hyperpguard?label=release&color=green)
-![android](https://img.shields.io/badge/Android-10--16-green)
-![status](https://img.shields.io/badge/status-按需维护-2da44e?style=flat-square)
+<p align="center">
+  <a href="https://github.com/vivibibi30/hyperpguard/releases"><img src="https://img.shields.io/github/v/release/vivibibi30/hyperpguard?label=release&style=for-the-badge&logo=github&logoColor=white&labelColor=222" alt="release"></a>
+  <img src="https://img.shields.io/badge/Android-10--16-3DDC84?style=for-the-badge&logo=android&logoColor=white&labelColor=222" alt="android">
+  <img src="https://img.shields.io/badge/language-Java-ED8B00?style=for-the-badge&labelColor=222" alt="language">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-white?style=for-the-badge&logo=gnu&logoColor=white&labelColor=222" alt="license"></a>
+  <img src="https://img.shields.io/badge/status-按需维护-2da44e?style=for-the-badge&labelColor=222" alt="status">
+</p>
 
-在采集入口、本地存储、对外接口、网络出口四个层面，按应用给行为加开关
+## 关于
 
-</div>
-
-[简体中文](README.md) · [English](README.en.md)
+**在采集入口、本地存储、对外接口、网络出口四个层面，按应用给行为加开关。**
 
 以下内容基于对本机预装组件的静态分析与运行时观察：这些组件会采集设备标识、应用使用记录、位置、通话行为等信息，并通过网络或跨进程接口发出。本模块在这些通道上按应用分组拦截，开关与 LSPosed 作用域联动。具体行为以各自机型和系统版本上的观察为准。
 
-> **维护节奏**：本项目由个人维护，开发与验证主要依赖 AI 辅助与自费的真机测试，长期成本由作者个人承担。更新频率已主动下调：只在出现影响使用的缺陷、发现新的上报通道或系统大版本适配时发版；界面、文案与小功能改动会并入下一次实质更新，不单独出包。issue 会看，但不承诺响应时间和实现排期，未确认的功能请求可能长期不做，或并入相近的改动一起处理。
+> [!IMPORTANT]
+> 仅供个人在自有设备上学习研究使用，使用前请阅读 [DISCLAIMER.txt](DISCLAIMER.txt)。名称中的 Hyper 指 HyperOS 平台，本项目与小米、中国联通等厂商无隶属或合作关系。
 
-改代码前建议先看 [AGENTS.md](AGENTS.md)（协作约定）与 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)（结构与扩展步骤）。
+<p align="center">
+  <a href="README.md" title="简体中文 · 当前语言"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/language-zh-active-dark.svg"><img src="docs/images/language-zh-active.svg" width="124" height="36" alt="简体中文（当前语言）"></picture></a><a href="README.en.md" title="Switch to English"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/language-en-inactive-dark.svg"><img src="docs/images/language-en-inactive.svg" width="124" height="36" alt="English"></picture></a>
+</p>
 
-本仓库即源码仓：`src/` 下是全部 Java 实现，`build.sh` 是完整构建脚本，用 `javac` + `d8` + `aapt2` + `zipalign` + `apksigner` 打包，不依赖 Gradle；`Releases` 里的 APK 由它构建。`Xposed-Modules-Repo/io.github.vivibibi30.hyperpguard` 只是 LSPosed 的索引仓库，只放 APK 与简介。
-
-> 仅供个人在自有设备上学习研究使用。使用前请阅读 [DISCLAIMER.txt](DISCLAIMER.txt)。名称中的 Hyper 指 HyperOS 平台，本项目与小米、中国联通等厂商无隶属或合作关系。
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/cover-dark.svg">
+    <img src="docs/images/cover.svg" width="100%" alt="把该拦的拦住，能关的都关">
+  </picture>
+</p>
 
 ## 当前支持的版本
 
@@ -119,6 +127,8 @@
 
 ## 构建
 
+本仓库即源码仓：`src/` 下是全部 Java 实现，`build.sh` 是完整构建脚本，用 `javac` + `d8` + `aapt2` + `zipalign` + `apksigner` 打包，不依赖 Gradle；`Releases` 里的 APK 由它构建。`Xposed-Modules-Repo/io.github.vivibibi30.hyperpguard` 只是 LSPosed 的索引仓库，只放 APK 与简介。
+
 需要 JDK 17 与 build-tools 35 及以上，SDK 路径用环境变量指定：
 
 ```sh
@@ -128,6 +138,8 @@ sh build.sh
 ```
 
 ## 源码结构
+
+改代码前建议先看 [AGENTS.md](AGENTS.md)（协作约定）与 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)（结构与扩展步骤）。
 
 ```
 src/io/github/vivibibi30/hyperpguard/
@@ -190,6 +202,8 @@ build.sh              一键构建
 - **方法层出现 `hook miss`**：组件版本变化，网络层与隐私 API 层不受影响
 
 ## 反馈与边界
+
+> **维护节奏**：本项目由个人维护，开发与验证主要依赖 AI 辅助与自费的真机测试，长期成本由作者个人承担。更新频率已主动下调：只在出现影响使用的缺陷、发现新的上报通道或系统大版本适配时发版；界面、文案与小功能改动会并入下一次实质更新，不单独出包。issue 会看，但不承诺响应时间和实现排期，未确认的功能请求可能长期不做，或并入相近的改动一起处理。
 
 - 提 issue 前先点「自检」，日志脱敏后再贴；具体见 [CONTRIBUTING.md](CONTRIBUTING.md)
 - 不要上传厂商组件的 APK 或反编译产物到 issue，需要分析时请自行在设备上定位

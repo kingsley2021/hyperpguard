@@ -1,17 +1,36 @@
-# HyperPGuard
+<p align="center">
+  <img src="res/mipmap-xxxhdpi/ic_launcher.png" width="132" height="132" alt="HyperPGuard">
+</p>
 
-![license](https://img.shields.io/badge/license-GPL--3.0-blue)
-![language](https://img.shields.io/badge/language-Java-orange)
-![release](https://img.shields.io/github/v/release/vivibibi30/hyperpguard?label=release&color=green)
-![android](https://img.shields.io/badge/Android-10--16-green)
+<h1 align="center">HyperPGuard</h1>
 
-[简体中文](README.md) · English
+<p align="center">
+  <a href="https://github.com/vivibibi30/hyperpguard/releases"><img src="https://img.shields.io/github/v/release/vivibibi30/hyperpguard?label=release&style=for-the-badge&logo=github&logoColor=white&labelColor=222" alt="release"></a>
+  <img src="https://img.shields.io/badge/Android-10--16-3DDC84?style=for-the-badge&logo=android&logoColor=white&labelColor=222" alt="android">
+  <img src="https://img.shields.io/badge/language-Java-ED8B00?style=for-the-badge&labelColor=222" alt="language">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-white?style=for-the-badge&logo=gnu&logoColor=white&labelColor=222" alt="license"></a>
+  <img src="https://img.shields.io/badge/status-maintained_as_needed-2da44e?style=for-the-badge&labelColor=222" alt="status">
+</p>
 
-An LSPosed module that puts per-app switches on four kinds of app behaviour — data source queries, local storage writes, IPC interfaces and network egress. Rules are user-defined (domain suffix + path, class#method); switches that could affect app features default to off. It runs entirely on-device and has no network access of its own.
+## About
+
+**An LSPosed module that puts per-app switches on four kinds of app behaviour — data source queries, local storage writes, IPC interfaces and network egress. Rules are user-defined (domain suffix + path, class#method); switches that could affect app features default to off. It runs entirely on-device and has no network access of its own.**
 
 This project is based on static analysis and runtime observation of the components shipped on the author's own device. Components differ between models and ROM versions; treat everything here as observed behaviour, not as a universal description.
 
-> **Maintenance**: this is a personal project. Development and testing rely on AI assistance and self-funded device testing, so the cost is borne by the author alone. Releases happen only for defects that affect use, newly discovered reporting channels, or adaptation to a new major system version. UI and wording changes are folded into the next substantive release instead of shipping on their own. Issues are read, but no response time or delivery schedule is promised.
+> [!IMPORTANT]
+> For personal study and research on devices you own; read [DISCLAIMER.txt](DISCLAIMER.txt) first. "Hyper" refers to the HyperOS platform — this project is not affiliated with Xiaomi, China Unicom, or any vendor mentioned.
+
+<p align="center">
+  <a href="README.md" title="Switch to 简体中文"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/language-zh-inactive-dark.svg"><img src="docs/images/language-zh-inactive.svg" width="124" height="36" alt="简体中文"></picture></a><a href="README.en.md" title="English · current language"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/language-en-active-dark.svg"><img src="docs/images/language-en-active.svg" width="124" height="36" alt="English (current language)"></picture></a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/cover-en-dark.svg">
+    <img src="docs/images/cover-en.svg" width="100%" alt="Block what should be blocked.">
+  </picture>
+</p>
 
 ## Requirements
 
@@ -133,6 +152,8 @@ src/io/github/vivibibi30/hyperpguard/
 - The module blocks reporting; it does not revoke permissions already granted during device setup
 
 ## Contributing
+
+> **Maintenance**: this is a personal project. Development and testing rely on AI assistance and self-funded device testing, so the cost is borne by the author alone. Releases happen only for defects that affect use, newly discovered reporting channels, or adaptation to a new major system version. UI and wording changes are folded into the next substantive release instead of shipping on their own. Issues are read, but no response time or delivery schedule is promised.
 
 Run "self-check" before opening an issue, redact identifiers in logs, and read [CONTRIBUTING.en.md](CONTRIBUTING.en.md) for what not to upload (vendor APKs, decompiled output, device databases).
 
